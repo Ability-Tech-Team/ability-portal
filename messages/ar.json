@@ -1,0 +1,29 @@
+{
+  "Metadata": {
+    "title": "Ability Portal",
+    "description": "نقطة دخول واحدة إلى منتجات Ability-Tech."
+  },
+  "Home": {
+    "brand": "Ability Portal",
+    "title": "اختر منتجًا",
+    "intro": "افتح منتج Ability-Tech الذي تريد العمل عليه.",
+    "previewNotice": "لم يتم تفعيل تسجيل الدخول والتحقق من صلاحية الوصول إلى المنتجات بعد. تفتح كل بطاقة صفحة البداية العامة للمنتج.",
+    "open": "فتح {product}",
+    "configurationPending": "بانتظار الإعداد.",
+    "configurationPendingDescription": "لم يُضبط عنوان هذا المنتج في هذه البوابة بعد."
+  },
+  "Products": {
+    "crm": {
+      "name": "Ability CRM",
+      "description": "إدارة علاقات العملاء لمؤسستك."
+    },
+    "communityAdmin": {
+      "name": "Community Admin",
+      "description": "إدارة تطبيق مجتمعك على الهاتف المحمول."
+    }
+  },
+  "LocaleSwitcher": {
+    "label": "اللغة",
+    "locale": "{locale, select, en {English} ar {العربية} other {{locale}}}"
+  }
+}

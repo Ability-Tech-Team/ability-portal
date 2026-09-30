@@ -1,0 +1,29 @@
+{
+  "Metadata": {
+    "title": "Ability Portal",
+    "description": "One entry point for Ability-Tech products."
+  },
+  "Home": {
+    "brand": "Ability Portal",
+    "title": "Choose a product",
+    "intro": "Open the Ability-Tech product you want to work in.",
+    "previewNotice": "Sign-in and product access checks are not active yet. Each card opens the product's public start page.",
+    "open": "Open {product}",
+    "configurationPending": "Configuration pending.",
+    "configurationPendingDescription": "The address of this product has not been set up for this portal yet."
+  },
+  "Products": {
+    "crm": {
+      "name": "Ability CRM",
+      "description": "Customer relationship management for your organization."
+    },
+    "communityAdmin": {
+      "name": "Community Admin",
+      "description": "Administration for your community mobile app."
+    }
+  },
+  "LocaleSwitcher": {
+    "label": "Language",
+    "locale": "{locale, select, en {English} ar {العربية} other {{locale}}}"
+  }
+}
