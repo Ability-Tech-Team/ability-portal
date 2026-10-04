@@ -4,21 +4,15 @@
  * its API enforce access themselves, including on direct entry.
  */
 
+import { parseBaseUrl, type BaseUrlProblem, type ParsedBaseUrl } from "./baseUrl";
+
 export const PRODUCT_KEYS = ["crm", "communityAdmin"] as const;
 
 export type ProductKey = (typeof PRODUCT_KEYS)[number];
 
-export type DestinationProblem =
-  | "malformed"
-  | "unsupported-protocol"
-  | "insecure-http"
-  | "credentials"
-  | "query-or-fragment";
+export type DestinationProblem = BaseUrlProblem;
 
-export type ProductDestination =
-  | { status: "configured"; baseUrl: string }
-  | { status: "missing" }
-  | { status: "invalid"; problem: DestinationProblem };
+export type ProductDestination = ParsedBaseUrl;
 
 export type ProductEntry = {
   href: string;
@@ -36,57 +30,14 @@ const productLocales: Record<ProductKey, readonly string[]> = {
   communityAdmin: ["en", "ar"],
 };
 
-function isLoopbackHost(hostname: string): boolean {
-  return (
-    hostname === "localhost" ||
-    hostname.endsWith(".localhost") ||
-    hostname === "[::1]" ||
-    /^127(?:\.\d{1,3}){3}$/.test(hostname)
-  );
-}
-
 /**
- * Validates a configured product base URL: an absolute `https:` URL, or
- * `http:` for loopback hosts during local development, with an optional base
- * path. Credentials, query strings, and fragments are rejected so that product
- * links never carry secrets or tokens.
+ * Validates a configured product base URL (see `parseBaseUrl`): product links
+ * never carry credentials, query strings, or fragments.
  */
 export function parseProductDestination(
   value: string | undefined,
 ): ProductDestination {
-  const trimmed = value?.trim();
-
-  if (!trimmed) {
-    return { status: "missing" };
-  }
-
-  let url: URL;
-  try {
-    url = new URL(trimmed);
-  } catch {
-    return { status: "invalid", problem: "malformed" };
-  }
-
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    return { status: "invalid", problem: "unsupported-protocol" };
-  }
-
-  if (url.protocol === "http:" && !isLoopbackHost(url.hostname)) {
-    return { status: "invalid", problem: "insecure-http" };
-  }
-
-  if (url.username || url.password) {
-    return { status: "invalid", problem: "credentials" };
-  }
-
-  if (url.search || url.hash) {
-    return { status: "invalid", problem: "query-or-fragment" };
-  }
-
-  return {
-    status: "configured",
-    baseUrl: `${url.origin}${url.pathname.replace(/\/+$/, "")}`,
-  };
+  return parseBaseUrl(value);
 }
 
 function reportDestinationProblem(

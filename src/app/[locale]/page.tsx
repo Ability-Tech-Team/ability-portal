@@ -1,75 +1,144 @@
-import { Building2, Info, UsersRound, type LucideIcon } from "lucide-react";
-import { useLocale, useTranslations } from "next-intl";
+import { BuildingComplex, UsersRound, type LucideIcon } from "lucide-react";
+import { hasLocale } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import { highlight } from "@/src/components/highlight";
 import LocaleSwitcher from "@/src/components/LocaleSwitcher";
+import PortalShell from "@/src/components/PortalShell";
+import { redirect } from "@/src/i18n/navigation";
+import { getLocaleDirection, routing } from "@/src/i18n/routing";
 import {
   getProductDestinations,
   type ProductKey,
 } from "@/src/lib/productDestinations";
+import { getCurrentSession } from "@/src/lib/session";
+import AccessCheckFailed from "./components/AccessCheckFailed";
+import AccountBadge from "./components/AccountBadge";
 import ProductCard from "./components/ProductCard";
-import { buildProductCards } from "./utils";
+import SignOutForm from "./components/SignOutForm";
+import type { ProductCardModel } from "./types";
+import { buildProductCards, orderCardsForScreen } from "./utils";
+
+type Props = {
+  params: Promise<{ locale: string }>;
+};
 
 const productIcons: Record<ProductKey, LucideIcon> = {
   crm: UsersRound,
-  communityAdmin: Building2,
+  communityAdmin: BuildingComplex,
 };
 
-export default function ProductSelectionPage() {
-  const t = useTranslations("Home");
-  const tProducts = useTranslations("Products");
-  const locale = useLocale();
-  const cards = buildProductCards(getProductDestinations(), locale);
+// Entrance delays for the cards in reading order. Literal class names, so
+// that Tailwind generates them.
+const cardEnterDelays = ["enter-delay-360", "enter-delay-460"];
+
+export default async function ProductSelectionPage({ params }: Props) {
+  const { locale } = await params;
+  const session = await getCurrentSession();
+
+  if (session.status === "signed-out") {
+    return redirect({
+      href: {
+        pathname: "/sign-in",
+        query: session.ended ? { notice: "session-ended" } : {},
+      },
+      locale,
+    });
+  }
+
+  const t = await getTranslations("Home");
+  const tProducts = await getTranslations("Products");
+  const headerActions = (
+    <>
+      <SignOutForm locale={locale} />
+      <LocaleSwitcher />
+    </>
+  );
+
+  if (session.status === "unavailable") {
+    return (
+      <PortalShell
+        headerActions={headerActions}
+        eyebrow={t("eyebrow")}
+        title={t.rich("title", { highlight })}
+        titleId="product-selection-title"
+      >
+        <AccessCheckFailed />
+      </PortalShell>
+    );
+  }
+
+  const direction = hasLocale(routing.locales, locale)
+    ? getLocaleDirection(locale)
+    : "ltr";
+  const cards = orderCardsForScreen(
+    buildProductCards(getProductDestinations(), locale, session.products),
+    direction,
+  );
+
+  function cardNotice(card: ProductCardModel, product: string) {
+    switch (card.state) {
+      case "available":
+        return null;
+      case "configuration-pending":
+        return {
+          title: t("configurationPending"),
+          description: t("configurationPendingDescription"),
+        };
+      case "not-subscribed":
+        return {
+          title: t("notSubscribed"),
+          description: t("notSubscribedDescription", { product }),
+        };
+      case "locked":
+        return {
+          title: t("locked"),
+          description: t("lockedDescription", { product }),
+        };
+      case "unavailable":
+        return {
+          title: t("unavailable"),
+          description: t("unavailableDescription", { product }),
+        };
+    }
+  }
 
   return (
-    <>
-      <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <p className="text-lg font-semibold tracking-tight">{t("brand")}</p>
-          <LocaleSwitcher />
-        </div>
-      </header>
+    <PortalShell
+      headerActions={headerActions}
+      eyebrow={t("eyebrow")}
+      title={t.rich("title", { highlight })}
+      titleId="product-selection-title"
+      intro={t("intro")}
+      heroFooter={<AccountBadge account={session.account} />}
+    >
+      <ul
+        data-card-grid
+        aria-labelledby="product-selection-title"
+        className="grid gap-6 md:grid-cols-2 lg:gap-8"
+      >
+        {cards.map((card, index) => {
+          const name = tProducts(`${card.key}.name`);
 
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
-        <h1
-          id="product-selection-title"
-          className="text-3xl font-semibold tracking-tight sm:text-4xl"
-        >
-          {t("title")}
-        </h1>
-        <p className="mt-3 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
-          {t("intro")}
-        </p>
-
-        <p
-          role="note"
-          className="mt-6 flex max-w-3xl items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-200"
-        >
-          <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
-          <span>{t("previewNotice")}</span>
-        </p>
-
-        <ul
-          aria-labelledby="product-selection-title"
-          className="mt-10 grid gap-6 md:grid-cols-2"
-        >
-          {cards.map((card) => {
-            const name = tProducts(`${card.key}.name`);
-
-            return (
-              <li key={card.key} className="flex">
-                <ProductCard
-                  card={card}
-                  icon={productIcons[card.key]}
-                  name={name}
-                  description={tProducts(`${card.key}.description`)}
-                  openLabel={t("open", { product: name })}
-                  pendingTitle={t("configurationPending")}
-                  pendingDescription={t("configurationPendingDescription")}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      </main>
-    </>
+          return (
+            <li
+              key={card.key}
+              className={`flex transition-[scale] duration-500 ease-out-soft perspective-distant motion-safe:animate-enter ${
+                cardEnterDelays[index] ?? "enter-delay-460"
+              }`}
+            >
+              <ProductCard
+                card={card}
+                icon={productIcons[card.key]}
+                name={name}
+                description={tProducts(`${card.key}.description`)}
+                openLabel={t("open", { product: name })}
+                openingLabel={t("opening", { product: name })}
+                notice={cardNotice(card, name)}
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </PortalShell>
   );
 }

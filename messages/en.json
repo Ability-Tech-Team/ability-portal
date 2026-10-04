@@ -1,16 +1,102 @@
 {
   "Metadata": {
     "title": "Ability Portal",
-    "description": "One entry point for Ability-Tech products."
+    "description": "One entry point for Ability Tech products."
+  },
+  "Shell": {
+    "portal": "Portal",
+    "footer": "Ability Portal by Ability Tech"
   },
   "Home": {
-    "brand": "Ability Portal",
-    "title": "Choose a product",
-    "intro": "Open the Ability-Tech product you want to work in.",
-    "previewNotice": "Sign-in and product access checks are not active yet. Each card opens the product's public start page.",
+    "eyebrow": "Ability Through Technology",
+    "title": "Choose a <highlight>product</highlight>",
+    "intro": "Open the Ability Tech product you want to work in.",
     "open": "Open {product}",
+    "opening": "Opening {product}…",
     "configurationPending": "Configuration pending.",
-    "configurationPendingDescription": "The address of this product has not been set up for this portal yet."
+    "configurationPendingDescription": "The address of this product has not been set up for this portal yet.",
+    "notSubscribed": "Not included in your subscription.",
+    "notSubscribedDescription": "Contact Ability Tech to add {product}.",
+    "locked": "Locked for your account.",
+    "lockedDescription": "Contact Ability Tech to unlock {product}.",
+    "unavailable": "Not available right now.",
+    "unavailableDescription": "Contact Ability Tech if you need {product}.",
+    "accessCheckFailedTitle": "We couldn’t check your access",
+    "accessCheckFailedDescription": "The sign-in service didn’t answer, so no product can be opened right now. Try again in a moment.",
+    "tryAgain": "Try again"
+  },
+  "Account": {
+    "signedInAs": "Signed in as",
+    "signOut": "Sign out",
+    "signingOut": "Signing out…"
+  },
+  "Auth": {
+    "email": "Email",
+    "password": "Password",
+    "showPassword": "Show password",
+    "backToSignIn": "Back to sign in",
+    "tooManyAttempts": "Too many attempts. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+    "tooManyAttemptsLater": "Too many attempts. Try again later.",
+    "unavailable": "The sign-in service isn’t available right now. Try again in a moment.",
+    "errors": {
+      "email_required": "Enter your email address.",
+      "email_invalid": "Enter a valid email address, like name@example.com.",
+      "password_required": "Enter your password.",
+      "password_too_long": "This password is too long."
+    }
+  },
+  "SignIn": {
+    "metaTitle": "Sign in – Ability Portal",
+    "title": "Sign in to your <highlight>portal</highlight>",
+    "intro": "Use the email address and password of your Ability Tech account.",
+    "formTitle": "Sign in",
+    "continueTo": "Sign in to continue to {product}.",
+    "forgotPassword": "Forgot your password?",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "invalidCredentials": "The email address or password is incorrect.",
+    "accountDisabled": "This account is disabled. Contact Ability Tech.",
+    "noAccount": "Ability Tech creates the accounts of its clients. If you don’t have one yet, contact Ability Tech.",
+    "notices": {
+      "signed-out": "You’ve signed out.",
+      "session-ended": "Your session ended. Sign in again to continue.",
+      "password-set": "Your password is set. Sign in with your new password."
+    }
+  },
+  "ForgotPassword": {
+    "metaTitle": "Forgot password – Ability Portal",
+    "title": "Reset your <highlight>password</highlight>",
+    "intro": "We’ll email you a link to set a new password.",
+    "formTitle": "Forgot your password?",
+    "emailHint": "The email address you sign in with.",
+    "submit": "Email me a link",
+    "submitting": "Sending…",
+    "sentTitle": "Check your email",
+    "sentDescription": "If an account uses <email>{address}</email>, we’ve sent it a link to set a new password. The link works once and expires after a short time."
+  },
+  "SetPassword": {
+    "metaTitle": "Set password – Ability Portal",
+    "title": "Set your <highlight>password</highlight>",
+    "intro": "Choose the password you’ll use to sign in to Ability Portal.",
+    "formTitle": "Set a new password",
+    "checkingLink": "Checking your link…",
+    "linkMissing": "Open this page from the link in your email. If the link no longer works, request a new one.",
+    "linkInvalid": "This link has expired or was already used. Request a new one.",
+    "requestNewLink": "Request a new link",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "hint": "At least {minLength} characters. A sentence you’ll remember works well.",
+    "submit": "Set password",
+    "submitting": "Saving…",
+    "errors": {
+      "password_required": "Enter a new password.",
+      "password_too_short": "Use at least {minLength} characters.",
+      "password_too_long": "Use {maxLength} characters or fewer.",
+      "password_too_common": "This password is too common or has appeared in a data breach. Choose another one.",
+      "password_rejected": "This password can’t be used. Choose another one.",
+      "confirmation_required": "Enter the new password again.",
+      "confirmation_mismatch": "The passwords don’t match."
+    }
   },
   "Products": {
     "crm": {
@@ -24,6 +110,7 @@
   },
   "LocaleSwitcher": {
     "label": "Language",
-    "locale": "{locale, select, en {English} ar {العربية} other {{locale}}}"
+    "locale": "{locale, select, en {English} ar {العربية} other {{locale}}}",
+    "short": "{locale, select, en {EN} ar {ع} other {{locale}}}"
   }
 }

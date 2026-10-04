@@ -1,5 +1,361 @@
 @import "tailwindcss";
 
-:root {
-  color-scheme: light dark;
+/*
+ * Ability Portal styles in the Ability Tech brand (ability-tech.com): the
+ * navy, blue, cyan, teal, and green palette with its gradients, Montserrat
+ * and Inter for English, and Cairo for Arabic. Names follow the site's
+ * `--at-*` tokens. Each product card picks its accent through `data-product`.
+ */
+
+/* A linked card that is hovered (hover-capable pointers only) or holds
+   keyboard focus. Matches the card itself and everything inside it. */
+@custom-variant card-active {
+  @media (hover: hover) {
+    &:where([data-card]:hover, [data-card]:hover *) {
+      @slot;
+    }
+  }
+  &:where([data-card]:has(:focus-visible), [data-card]:has(:focus-visible) *) {
+    @slot;
+  }
+}
+
+/* A linked card whose product link was just followed (ProductLaunchLink). */
+@custom-variant card-opening (&:where([data-card]:has([data-opening]), [data-card]:has([data-opening]) *));
+
+@theme {
+  /* Ability Tech palette. */
+  --color-at-navy-900: #00153c;
+  --color-at-navy-800: #002144;
+  --color-at-navy-700: #003861;
+  --color-at-navy-600: #004674;
+  --color-at-blue-500: #0167ad;
+  --color-at-cyan-500: #0bc1b9;
+  --color-at-teal-500: #13b3b0;
+  --color-at-green-500: #4bd66b;
+  --color-at-ink: #0b1b2b;
+  --color-at-ink-muted: #51677b;
+  --color-at-line: #d9e4ea;
+  --color-at-line-soft: #e8eff3;
+  --color-at-mist: #eaf2f5;
+  --color-at-wash: #f6fafb;
+  /* Accessible tints (not on the site): blue for text and fills on navy
+     (7.2:1 on navy-800) and teal for text on white (4.85:1). */
+  --color-at-blue-300: #6cb4ea;
+  --color-at-teal-700: #087f7b;
+
+  /* The site's --at-ease. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* The delay is part of the shorthand: a separate animation-delay would be
+     reset by it. `backwards` keeps no end state, so hover effects still work
+     after the entrance. */
+  --animate-enter: enter 0.8s var(--ease-out-soft) var(--enter-delay, 0ms)
+    backwards;
+  --animate-aurora: aurora 28s ease-in-out infinite alternate;
+  --animate-aurora-slow: aurora 36s ease-in-out infinite alternate-reverse;
+  --animate-gradient-pan: gradient-pan 7s ease-in-out infinite alternate;
+  --animate-wiggle: wiggle 0.9s ease-in-out;
+  --animate-float: float 2.4s ease-in-out infinite;
+  --animate-border-spin: border-spin 1.6s linear infinite;
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      translate: 0 1rem;
+      filter: blur(6px);
+    }
+  }
+
+  @keyframes aurora {
+    from {
+      translate: 0 0;
+      scale: 1;
+    }
+    50% {
+      translate: -6% 5%;
+      scale: 1.12;
+    }
+    to {
+      translate: 5% 8%;
+      scale: 0.95;
+    }
+  }
+
+  @keyframes gradient-pan {
+    from {
+      background-position: 0% 50%;
+    }
+    to {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes wiggle {
+    0%,
+    100% {
+      rotate: 0deg;
+    }
+    20% {
+      rotate: -16deg;
+    }
+    40% {
+      rotate: 13deg;
+    }
+    60% {
+      rotate: -8deg;
+    }
+    80% {
+      rotate: 4deg;
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -0.3rem;
+    }
+  }
+
+  @keyframes border-spin {
+    to {
+      --border-angle: 360deg;
+    }
+  }
+}
+
+@theme inline {
+  /* Headings: Montserrat in English, Cairo in Arabic (set per language below). */
+  --font-display: var(--display-stack);
+
+  /* The current card's product accent (see [data-product] below). */
+  --color-product: var(--product);
+  --color-product-soft: var(--product-soft);
+  --color-product-solid: var(--product-solid);
+  --color-product-ink: var(--product-ink);
+  --color-on-product: var(--on-product);
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* Staggered entrance: `enter-delay-160` waits 160ms. */
+@utility enter-delay-* {
+  --enter-delay: calc(--value(integer) * 1ms);
+}
+
+/* Soft light that follows the pointer inside a card. */
+@utility card-spotlight {
+  background: radial-gradient(
+    26rem circle at var(--pointer-x, 50%) var(--pointer-y, 0%),
+    color-mix(in oklab, var(--product) 16%, transparent),
+    transparent 70%
+  );
+}
+
+/* A 1px edge that brightens near the pointer. */
+@utility card-border-glow {
+  padding: 1px;
+  background: radial-gradient(
+    14rem circle at var(--pointer-x, 50%) var(--pointer-y, 0%),
+    var(--product),
+    transparent 75%
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+/* A light that runs around the card edge while its product opens. */
+@utility card-opening-ring {
+  padding: 2px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 0 55%,
+    var(--product-soft) 75%,
+    var(--product) 90%,
+    transparent
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+/* The site's accent gradient as text, for headings on navy. */
+@utility text-accent-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-at-teal-500),
+    var(--color-at-green-500),
+    var(--color-at-cyan-500),
+    var(--color-at-teal-500)
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+@utility bg-grid-lines {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 3.5rem 3.5rem;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+
+    /* The site's gradients. */
+    --at-grad-brand: linear-gradient(
+      135deg,
+      var(--color-at-navy-800) 0%,
+      var(--color-at-blue-500) 34%,
+      var(--color-at-cyan-500) 68%,
+      var(--color-at-green-500) 100%
+    );
+    --at-grad-accent: linear-gradient(
+      120deg,
+      var(--color-at-teal-500) 0%,
+      var(--color-at-green-500) 100%
+    );
+    --at-grad-cool: linear-gradient(
+      120deg,
+      var(--color-at-navy-800) 0%,
+      var(--color-at-blue-500) 100%
+    );
+    --at-grad-deep: linear-gradient(
+      160deg,
+      var(--color-at-navy-900) 0%,
+      var(--color-at-navy-800) 55%,
+      var(--color-at-navy-700) 100%
+    );
+    --at-grad-rule: linear-gradient(
+      90deg,
+      var(--color-at-navy-800),
+      var(--color-at-blue-500),
+      var(--color-at-cyan-500),
+      var(--color-at-green-500)
+    );
+
+    --grid-line: color-mix(in oklab, var(--color-at-navy-800) 7%, transparent);
+  }
+
+  /* next/font's fallback faces are Arial, which also has Arabic glyphs, so
+     each language gets its own stacks instead of one shared one. Elements
+     with their own `lang` (such as the language links) follow it. */
+  [lang|="en"] {
+    --body-stack: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    --display-stack:
+      var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--body-stack);
+  }
+
+  [lang|="ar"] {
+    --body-stack: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+    --display-stack: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--body-stack);
+  }
+
+  /* Product accents. `--product-fill` is the button and icon gradient;
+     `--on-product` is the text on it: white on the blue-to-navy gradient
+     (5.9:1 or more), navy on the teal-green accent gradient (white on teal is
+     only 2.6:1). */
+  [data-product="crm"] {
+    --product: var(--color-at-blue-500);
+    --product-soft: var(--color-at-cyan-500);
+    --product-solid: var(--color-at-blue-500);
+    --product-ink: var(--color-at-blue-500);
+    --on-product: var(--color-white);
+    --product-fill: linear-gradient(
+      120deg,
+      var(--color-at-blue-500) 0%,
+      var(--color-at-navy-600) 100%
+    );
+  }
+
+  [data-product="communityAdmin"] {
+    --product: var(--color-at-teal-500);
+    --product-soft: var(--color-at-green-500);
+    --product-solid: var(--color-at-teal-500);
+    --product-ink: var(--color-at-teal-700);
+    --on-product: var(--color-at-navy-900);
+    --product-fill: var(--at-grad-accent);
+  }
+
+  /* The pointer hook overrides these inline while a mouse is over a card. */
+  [data-card] {
+    --tilt-x: 0deg;
+    --tilt-y: 0deg;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --grid-line: color-mix(in oklab, var(--color-white) 6%, transparent);
+    }
+
+    [data-product="crm"] {
+      --product: var(--color-at-blue-300);
+      --product-solid: var(--color-at-blue-300);
+      --product-ink: var(--color-at-blue-300);
+      --on-product: var(--color-at-navy-900);
+      --product-fill: linear-gradient(
+        120deg,
+        var(--color-at-blue-300) 0%,
+        var(--color-at-cyan-500) 100%
+      );
+    }
+
+    [data-product="communityAdmin"] {
+      --product-ink: var(--color-at-cyan-500);
+    }
+  }
+}
+
+@layer components {
+  /* While a linked card is hovered or focused, the other cards step back.
+     Their contents fade while the card surface stays opaque, so the navy
+     hero behind the top of the cards never shows through. */
+  [data-card-grid] > li > article > * {
+    transition: opacity 0.5s var(--ease-out-soft);
+  }
+
+  @media (hover: hover) {
+    [data-card-grid]:has([data-card]:hover)
+      > li:not(:has([data-card]:hover))
+      > article
+      > * {
+      opacity: 0.45;
+    }
+  }
+
+  [data-card-grid]:has([data-card] :focus-visible)
+    > li:not(:has(:focus-visible))
+    > article
+    > * {
+    opacity: 0.45;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    @media (hover: hover) {
+      [data-card-grid]:has([data-card]:hover)
+        > li:not(:has([data-card]:hover)) {
+        scale: 0.98;
+      }
+    }
+
+    [data-card-grid]:has([data-card] :focus-visible)
+      > li:not(:has(:focus-visible)) {
+      scale: 0.98;
+    }
+  }
 }

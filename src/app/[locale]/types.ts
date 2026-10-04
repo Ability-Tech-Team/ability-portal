@@ -1,11 +1,19 @@
 import type { ProductKey } from "@/src/lib/productDestinations";
 
 /**
- * A card on the product-selection page. "linked" only means that the product
- * has a valid configured destination; it is not an entitlement. Purchased,
- * not-purchased, access-denied, and checking states are added with the central
- * access contract, and none of them may default to access.
+ * A card on the product-selection page. Only "available" links to the
+ * product: the signed-in client's subscription includes it, Ability-Tech has
+ * not locked it, and its destination is configured. The other states never
+ * link, and nothing defaults to "available". The card is presentation; each
+ * product checks access again itself.
  */
 export type ProductCardModel =
-  | { key: ProductKey; state: "linked"; href: string; hrefLang?: string }
-  | { key: ProductKey; state: "configuration-pending" };
+  | { key: ProductKey; state: "available"; href: string; hrefLang?: string }
+  | {
+      key: ProductKey;
+      state:
+        | "not-subscribed"
+        | "locked"
+        | "unavailable"
+        | "configuration-pending";
+    };
