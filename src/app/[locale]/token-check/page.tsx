@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import PortalShell from "@/src/components/PortalShell";
 import { redirect } from "@/src/i18n/navigation";
 import { readTokenExpiry } from "@/src/lib/accessToken";
@@ -30,6 +31,10 @@ export const metadata: Metadata = {
  */
 export default async function TokenCheckPage({ params }: Props) {
   const { locale } = await params;
+  // CRM_API_URL is read when the page is requested, never at build time: a
+  // build without it (e.g. the Docker build stage) would otherwise store the
+  // page as "not found".
+  await connection();
   const checkUrl = getCrmCheckUrl();
 
   if (!checkUrl) {
