@@ -8,7 +8,7 @@ import type { ProductKey } from "@/src/lib/productDestinations";
  * product checks access again itself.
  */
 export type ProductCardModel =
-  | { key: ProductKey; state: "available"; href: string; hrefLang?: string }
+  | { key: ProductKey; state: "available"; href: string }
   | {
       key: ProductKey;
       state:

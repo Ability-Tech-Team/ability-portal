@@ -19,31 +19,44 @@ the workspace instead of assuming it exists.
   and Ability-Tech's locks; an unlocked card links to the separately deployed
   app. It also has the forgot-password and set-password pages. It contains no
   CRM or community business modules and never verifies passwords or decides
-  access itself: the account service does both (backend team; contract in
-  `../docs/ACCOUNT-SERVICE-API.md`). A card's state is presentation, never an
-  access decision: each product and its API enforce access, including on
-  direct entry.
+  access itself. Sign-in goes to the Portal API (`../portal-api`, NestJS;
+  decided 2026-10-06), which finds the client an email belongs to and signs in
+  with that client's backend. The password pages still use the account service
+  (contract in `../docs/ACCOUNT-SERVICE-API.md`). A card's state is
+  presentation, never an access decision: each product and its API enforce
+  access, including on direct entry.
 - **Independence:** this app has its own manifest, lockfile, environment files,
   build output, and local Git repository. Never import runtime code from
   `../Amer-CRM`, `../Ability-CRM`, or `../Ability-Community-Admin`.
-- **Status (2026-10-01):** sign-in, sign-out, forgot password, set password,
-  the shared session cookie, and the per-client card states are implemented
-  and were verified against a contract stand-in; the account service itself
-  doesn't exist yet. Without it, or without the `ACCOUNT_SERVICE_*` settings,
-  sign-in reports the service as unavailable. Do not add fake users, demo
+- **Status (2026-10-06):** sign-in calls the Portal API at `PORTAL_API_URL`
+  (verified against the dev instance at `http://172.20.1.141:9995`). Forgot
+  password and set password are implemented against the account service
+  contract, but that service doesn't exist yet, so they report it as
+  unavailable. Without `PORTAL_API_URL`, sign-in reports the service as
+  unavailable. Do not add fake users, demo
   credentials, a sign-in that accepts any password or checks it in the
   browser, a stub or bypass, fabricated subscriptions, localStorage lock
   switches, or true-by-default access helpers. A loading, unknown, or failed
   access result never renders a product as available.
-- **Session** (contract, section 7): `src/lib/session.ts` (server-only) is the
-  data access layer. `getCurrentSession()` checks the `ability_session` cookie
-  with the account service once per render (React `cache`); call it in each
-  page that needs the client, not only in a layout. `startSession` and
-  `endSession` set and delete the cookie, in Server Actions only. The options
-  come from `src/lib/sessionCookie.ts`: `HttpOnly`, `SameSite=Lax`, `Path=/`,
-  `Secure` except for plain HTTP on a loopback host (decided from the request's
-  `Origin`), and `Domain` from `SESSION_COOKIE_DOMAIN`. The token never reaches
-  client components.
+- **Session:** `src/lib/session.ts` (server-only) is the data access layer.
+  The Portal API answers the login once and has no session-check endpoint, so
+  a successful sign-in stores two cookies: `access_token` (the client's JWT,
+  the same name and options as the products' own cookie, `Domain` from
+  `SESSION_COOKIE_DOMAIN` when the request's host is inside that domain, and
+  none otherwise, so one build also works when opened by IP), and `portal_session` (who signed in and their
+  platforms, `src/lib/portalSession.ts`, on the Portal's host only). Both
+  expire at the token's `exp`. `getCurrentSession()` (React `cache`) reads
+  them: a missing token, or a token without `portal_session`, is signed out; an
+  expired or unreadable token is "session ended". The Portal never verifies
+  the JWT (it doesn't hold the key; `src/lib/accessToken.ts` only reads
+  `exp`); the products do. Call it in each page that needs the client, not
+  only in a layout. `startSession` and `endSession` set and delete both
+  cookies, in Server Actions only; the Portal API's logout only clears a
+  cookie in its own response, so it isn't called. Cookie options come from
+  `src/lib/sessionCookie.ts`: `HttpOnly`, `SameSite=Lax`, `Path=/`, and
+  `Secure` except for plain HTTP on a loopback host or a private IPv4 address
+  (decided from the request's `Origin`; browsers drop `Secure` cookies set
+  over HTTP). The token never reaches client components.
 - **Sign-in pages** (`src/app/[locale]/(auth)/`; rules in `../AGENTS.md`):
   `noValidate` forms posting to Server Actions through `useActionState`. Fields
   are checked on the server (`(auth)/_shared/validation.ts`, mirroring the
@@ -52,35 +65,47 @@ the workspace instead of assuming it exists.
   `"current-password"` or `"new-password"`. Any wrong email or password gets
   one generic error, and throttling shows the service's `Retry-After` in
   minutes. After a failed attempt, focus moves to the field to fix or to the
-  error. The set-password page reads the link token from the URL fragment
+  error. When the Portal API answers `chooseClient` or `chooseProject`, the
+  form shows `sign-in/components/SignInChoice.tsx` and posts again with the
+  choice; `hooks/useSignInForm.ts` keeps the typed credentials in a ref for
+  that second request and never returns the password in the action state. The set-password page reads the link token from the URL fragment
   (`#token=…`) in the browser, sets `Referrer-Policy: no-referrer`, and its
-  language switch carries the fragment. `returnTo` is followed only into a
-  configured product destination (`src/lib/returnTo.ts`); a signed-in client
-  who opens the sign-in page goes to the Portal home instead, which prevents
-  redirect loops. Amer CRM's login page is a visual reference only (see
+  language switch carries the fragment. The sign-in page passes on a
+  well-formed `returnTo`, and the action follows it only into one of the
+  signed-in client's platform addresses (`src/lib/returnTo.ts`); a signed-in
+  client who opens the sign-in page goes to the Portal home instead, which
+  prevents redirect loops. Amer CRM's login page is a visual reference only (see
   `../AGENTS.md`).
-- **Account service calls:** only `src/services/accountService.ts`
-  (server-only) calls the service, with the app credentials from
-  `src/lib/accountServiceConfig.ts`, a 5-second timeout for session checks and
-  10 seconds otherwise, no redirects, and zod-checked responses; anything
-  outside the contract counts as "unavailable". It forwards the client's IP
-  address as `X-End-User-IP` (`src/lib/endUserIp.ts`), so deployments must set
-  `X-Real-IP` or `X-Forwarded-For` at their reverse proxy. Never log request
-  bodies, tokens, or secrets.
-- **Product destinations:** `NEXT_PUBLIC_CRM_APP_URL` and
-  `NEXT_PUBLIC_COMMUNITY_ADMIN_APP_URL` are read only in
-  `src/lib/productDestinations.ts`, with literal `process.env.NEXT_PUBLIC_*`
-  access so that Next.js inlines them at build time. They are validated there
-  (rules in `src/lib/baseUrl.ts`): an absolute `https:` URL (`http:` only for
-  loopback hosts) without credentials, query string, or fragment; an optional
-  base path is allowed. Anything else renders an available product's card as
-  "configuration pending". Never take a destination from a query parameter or
-  put tokens or credentials in product links.
+- **Service calls:** only `src/services/portalApi.ts` calls the Portal API
+  (`POST {PORTAL_API_URL}/api/auth/login`, Swagger at `/docs` outside
+  production), and only `src/services/accountService.ts` calls the account
+  service (password pages, app credentials from
+  `src/lib/accountServiceConfig.ts`). Both are server-only, follow no
+  redirects, and zod-check responses; anything unexpected counts as
+  "unavailable". The Portal API call sends `Accept-Language` (the page
+  locale) and the client's IP address as `X-Forwarded-For` (it trusts one
+  proxy hop for its rate limit), takes the token from its `Set-Cookie`, and
+  waits up to 15 seconds (it waits up to 10 for each client backend). It
+  maps 401 to the generic wrong-credentials error, 403 to account disabled,
+  and 429 to throttling. The account service gets the IP as `X-End-User-IP`.
+  Deployments must set `X-Real-IP` or `X-Forwarded-For` at their reverse
+  proxy (`src/lib/endUserIp.ts`). Never log request bodies, tokens, or
+  secrets.
+- **Product destinations:** each client has its own deployments, so the
+  addresses come from the login answer's `platforms` (`crm`,
+  `community-admin`) and are kept in `portal_session`; each is a full entry
+  link, opened as is. A `returnTo` may be any page on the same site (origin)
+  as one of them. A listed platform is
+  available; an unlisted one shows "not subscribed". Addresses are validated
+  when read (`src/lib/baseUrl.ts`): an absolute `https:` URL (`http:` only for
+  loopback hosts and private IPv4 addresses) without credentials, query
+  string, or fragment; an optional base path is allowed. An invalid one
+  renders the card as "configuration pending". Never take a destination from
+  a query parameter or put tokens or credentials in product links.
 - **Structure** (definitions-module responsibilities):
   - `src/app/[locale]/page.tsx`: the product-selection page. It sends
-    signed-out clients to sign-in and shows `components/AccessCheckFailed.tsx`
-    when the service can't answer. `components/AccountBadge.tsx` shows who is
-    signed in; `SignOutForm.tsx` and `SignOutButton.tsx` post to `actions.ts`.
+    signed-out clients to sign-in. `components/AccountBadge.tsx` shows who
+    is signed in (the employee name from the login answer, and the email); `SignOutForm.tsx` and `SignOutButton.tsx` post to `actions.ts`.
   - `src/app/[locale]/components/ProductCard.tsx`: card presentation, a
     Server Component (it receives the icon component from the page); only
     available cards link. `ProductCardSurface.tsx` (pointer effects) and
@@ -106,15 +131,25 @@ the workspace instead of assuming it exists.
     page and, for set-password, the fragment through
     `FragmentPreservingLink.tsx`), and `BrandLogo.tsx` (the official logo from
     `public/brand/`, sized only through its `height` prop).
-  - `src/lib/`: `session.ts`, `sessionCookie.ts`, `tokens.ts`, `returnTo.ts`,
-    `endUserIp.ts`, `formData.ts`, `accountServiceConfig.ts`, `baseUrl.ts`,
-    `productDestinations.ts`, and `pointer.ts` (pure tilt and click helpers).
-    `src/services/accountService.ts` and `src/types/account.ts` hold the
-    account service calls and their types.
-- **Environment** (`.env.example`): the product destinations above are
-  inlined at build time. `ACCOUNT_SERVICE_URL`, `ACCOUNT_SERVICE_CLIENT_ID`,
-  `ACCOUNT_SERVICE_CLIENT_SECRET`, and `SESSION_COOKIE_DOMAIN` are server-only
-  and read at runtime. Deployments with several instances need a stable
+  - `src/lib/`: `session.ts`, `sessionCookie.ts`, `portalSession.ts`,
+    `accessToken.ts`, `tokens.ts` (password-link tokens), `returnTo.ts`,
+    `endUserIp.ts`, `formData.ts`, `portalApiConfig.ts`,
+    `accountServiceConfig.ts`, `baseUrl.ts`, `productDestinations.ts`, and
+    `pointer.ts` (pure tilt and click helpers). `src/services/portalApi.ts`,
+    `src/services/accountService.ts`, and `src/types/account.ts` hold the
+    service calls and their types.
+- **Environment** (`.env.example`): `PORTAL_API_URL`, `ACCOUNT_SERVICE_URL`,
+  `ACCOUNT_SERVICE_CLIENT_ID`, `ACCOUNT_SERVICE_CLIENT_SECRET`, and
+  `SESSION_COOKIE_DOMAIN` are server-only and read at runtime.
+  `CRM_API_URL` (optional, server-only, e.g. `http://172.20.1.141:9999`)
+  turns on a diagnostic: the Ability CRM card opens `/<locale>/token-check`
+  (`src/app/[locale]/token-check/`, `src/services/crmApi.ts`,
+  `src/lib/cookieTravel.ts`) instead of the CRM. It calls
+  `GET {CRM_API_URL}/definitions/contact-channels` from the Portal's server
+  with the token (is the token valid?) and from the browser with
+  `credentials: "include"` (does the cookie travel, and does CORS allow it?),
+  and links on to the CRM. English only; it never shows or logs the token.
+  Remove it once sign-in into the products is confirmed. Deployments with several instances need a stable
   `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`; behind a proxy whose host differs from
   the browser's origin, set `serverActions.allowedOrigins`.
 - **Design:** the Ability Tech brand from ability-tech.com. Tokens (named
@@ -133,16 +168,18 @@ the workspace instead of assuming it exists.
 - **Tests:** `npm test` runs Vitest (`vitest.config.mts`) on
   `src/**/*.test.ts`; `test/server-only.ts` stands in for `server-only`.
   Keep tests on consequential logic: destination and `returnTo` validation,
-  cookie options, the account service client against the contract (with a
-  mocked `fetch`), form validation, and card states.
+  cookie options and the session cookie format, the Portal API and account
+  service clients (with a mocked `fetch`), form validation, and card states.
 - **Imports** use the root-based alias `"@/*": ["./*"]`, e.g.
   `@/src/lib/productDestinations`.
 - **Locales:** routing lives in `src/proxy.ts` (the Next.js 16 name for
   middleware) and `src/i18n/`. `src/app/[locale]/layout.tsx` is the root
   layout, and the request locale comes from `next/root-params`. English is the
   default; Arabic renders right-to-left. This app owns `messages/en.json` and
-  `messages/ar.json`. Product links keep the selected locale for products that
-  route under `/en` and `/ar`.
+  `messages/ar.json`. Product links are the entry links the Portal API
+  returns, used unchanged: they already carry the product's path and locale
+  (e.g. `https://crm.ability-tech.com/en/dashboard/statistics`), so never
+  append a locale or path to them.
 
 Commands, from this directory (details in `README.md`; from `CRM/`,
 `npm run dev:portal` or `npm run dev` for all three apps):
@@ -157,6 +194,11 @@ npm test
 npm run build
 npm run start -- --port 3300
 ```
+
+Deployment: the `Dockerfile` builds the standalone server
+(`output: "standalone"`) and sets every environment value in its `ENV`
+block, so the server needs no `.env`. From this directory on the server:
+`docker build -t ability-portal-stand-alone . && docker rm -f ability-portal-stand-alone 2>/dev/null; docker run -d --name ability-portal-stand-alone --restart unless-stopped -p 6539:6539 ability-portal-stand-alone`.
 
 State and decisions: `../docs/MIGRATION.md`. Account service contract:
 `../docs/ACCOUNT-SERVICE-API.md`.

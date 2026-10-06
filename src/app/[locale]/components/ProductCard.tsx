@@ -125,7 +125,6 @@ export default function ProductCard({
         <div className="mt-auto pt-8">
           <ProductLaunchLink
             href={card.href}
-            hrefLang={card.hrefLang}
             label={openLabel}
             openingLabel={openingLabel}
           />

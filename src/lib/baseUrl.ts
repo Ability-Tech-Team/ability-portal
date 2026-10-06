@@ -1,7 +1,8 @@
 /**
- * Validation for configured base URLs (product destinations, the account
- * service): an absolute `https:` URL, or `http:` for loopback hosts during
- * local development, with an optional base path.
+ * Validation for base URLs (the Portal API, the account service, and the
+ * product addresses the Portal API returns): an absolute `https:` URL, or
+ * `http:` for loopback and private-network hosts (local development and
+ * internal deployments), with an optional base path.
  */
 
 export type BaseUrlProblem =
@@ -22,6 +23,22 @@ export function isLoopbackHost(hostname: string): boolean {
     hostname.endsWith(".localhost") ||
     hostname === "[::1]" ||
     /^127(?:\.\d{1,3}){3}$/.test(hostname)
+  );
+}
+
+/** A private IPv4 address (10/8, 172.16/12, 192.168/16). */
+export function isPrivateNetworkHost(hostname: string): boolean {
+  const match = /^(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(hostname);
+
+  if (!match) {
+    return false;
+  }
+
+  const [first, second] = [Number(match[1]), Number(match[2])];
+  return (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
   );
 }
 
@@ -47,7 +64,11 @@ export function parseBaseUrl(value: string | undefined): ParsedBaseUrl {
     return { status: "invalid", problem: "unsupported-protocol" };
   }
 
-  if (url.protocol === "http:" && !isLoopbackHost(url.hostname)) {
+  if (
+    url.protocol === "http:" &&
+    !isLoopbackHost(url.hostname) &&
+    !isPrivateNetworkHost(url.hostname)
+  ) {
     return { status: "invalid", problem: "insecure-http" };
   }
 

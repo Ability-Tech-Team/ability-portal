@@ -20,10 +20,7 @@
     "locked": "مقفل لحسابك.",
     "lockedDescription": "تواصل مع Ability Tech لفتح {product}.",
     "unavailable": "غير متاح حاليًا.",
-    "unavailableDescription": "تواصل مع Ability Tech إذا كنت تحتاج إلى {product}.",
-    "accessCheckFailedTitle": "تعذّر التحقق من صلاحياتك",
-    "accessCheckFailedDescription": "لم تستجب خدمة تسجيل الدخول، لذا لا يمكن فتح أي منتج الآن. حاول مرة أخرى بعد قليل.",
-    "tryAgain": "حاول مرة أخرى"
+    "unavailableDescription": "تواصل مع Ability Tech إذا كنت تحتاج إلى {product}."
   },
   "Account": {
     "signedInAs": "تم تسجيل الدخول باسم",
@@ -50,12 +47,19 @@
     "title": "سجّل الدخول إلى <highlight>بوابتك</highlight>",
     "intro": "استخدم البريد الإلكتروني وكلمة المرور الخاصين بحسابك في Ability Tech.",
     "formTitle": "تسجيل الدخول",
-    "continueTo": "سجّل الدخول للمتابعة إلى {product}.",
     "forgotPassword": "نسيت كلمة المرور؟",
     "submit": "تسجيل الدخول",
     "submitting": "جارٍ تسجيل الدخول…",
     "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
     "accountDisabled": "هذا الحساب معطَّل. تواصل مع Ability Tech.",
+    "chooseClient": "اختر الشركة",
+    "chooseClientHint": "لهذا البريد الإلكتروني حساب لدى أكثر من شركة. اختر الشركة التي تريد تسجيل الدخول إليها.",
+    "chooseProject": "اختر المشروع",
+    "chooseProjectHint": "يمكن لحسابك لدى {client} فتح أكثر من مشروع. اختر المشروع الذي تريد تسجيل الدخول إليه.",
+    "choiceRequired": "اختر أحد الخيارات للمتابعة.",
+    "signingInAs": "تسجيل الدخول باسم <email></email>",
+    "continue": "متابعة",
+    "useAnotherAccount": "استخدام بريد إلكتروني آخر",
     "noAccount": "تُنشئ Ability Tech حسابات عملائها. إذا لم يكن لديك حساب بعد، فتواصل مع Ability Tech.",
     "notices": {
       "signed-out": "تم تسجيل خروجك.",

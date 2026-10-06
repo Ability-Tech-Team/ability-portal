@@ -1,0 +1,11 @@
+# Keep the build context small and free of local settings: the image's
+# configuration is in the Dockerfile.
+.git
+.next
+node_modules
+coverage
+.env*
+*.tsbuildinfo
+npm-debug.log*
+Dockerfile
+.dockerignore

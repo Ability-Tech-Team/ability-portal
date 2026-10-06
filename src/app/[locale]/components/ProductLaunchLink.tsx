@@ -5,7 +5,6 @@ import { useProductLaunch } from "../hooks/useProductLaunch";
 
 type ProductLaunchLinkProps = {
   href: string;
-  hrefLang?: string;
   label: string;
   openingLabel: string;
 };
@@ -19,7 +18,6 @@ type ProductLaunchLinkProps = {
  */
 export default function ProductLaunchLink({
   href,
-  hrefLang,
   label,
   openingLabel,
 }: ProductLaunchLinkProps) {
@@ -28,7 +26,6 @@ export default function ProductLaunchLink({
   return (
     <a
       href={href}
-      hrefLang={hrefLang}
       onClick={onClick}
       data-opening={isOpening ? "" : undefined}
       className="inline-flex rounded-full after:absolute after:inset-0 after:rounded-3xl focus-visible:outline-hidden"

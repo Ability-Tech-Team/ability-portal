@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseEndUserIp } from "./endUserIp";
 import {
   buildSessionCookieOptions,
+  cookieDomainForHost,
   parseCookieDomain,
   shouldUseSecureCookie,
 } from "./sessionCookie";
@@ -38,10 +39,33 @@ describe("shouldUseSecureCookie", () => {
     ["https://localhost:3300", true],
     ["https://portal.example.com", true],
     ["http://portal.example.com", true],
+    ["http://172.20.1.141:3300", false],
+    ["https://172.20.1.141", true],
+    ["http://8.8.8.8:3300", true],
     [null, true],
     ["not a url", true],
   ])("for origin %j is %j", (origin, secure) => {
     expect(shouldUseSecureCookie(origin)).toBe(secure);
+  });
+});
+
+describe("cookieDomainForHost", () => {
+  const setting = { status: "configured", domain: "ability-tech.com" } as const;
+
+  it.each([
+    ["portal.ability-tech.com", "ability-tech.com"],
+    ["Portal.Ability-Tech.com:443", "ability-tech.com"],
+    ["ability-tech.com", "ability-tech.com"],
+    ["172.20.1.141:3300", undefined],
+    ["localhost:3300", undefined],
+    ["evil-ability-tech.com", undefined],
+    [null, undefined],
+  ])("for host %j is %j", (host, domain) => {
+    expect(cookieDomainForHost(setting, host)).toBe(domain);
+  });
+
+  it("is unset without a configured domain", () => {
+    expect(cookieDomainForHost({ status: "unset" }, "portal.ability-tech.com")).toBeUndefined();
   });
 });
 

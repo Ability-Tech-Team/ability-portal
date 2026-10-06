@@ -1,9 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  getProductDestinations,
-  getProductEntry,
-  parseProductDestination,
-} from "./productDestinations";
+import { describe, expect, it } from "vitest";
+import { parseProductDestination } from "./productDestinations";
 
 describe("parseProductDestination", () => {
   it.each([undefined, "", "   "])("treats %j as missing", (value) => {
@@ -19,6 +15,9 @@ describe("parseProductDestination", () => {
     ["http://127.0.0.1:3200", "http://127.0.0.1:3200"],
     ["http://[::1]:3200", "http://[::1]:3200"],
     ["http://crm.localhost:3100", "http://crm.localhost:3100"],
+    ["http://172.20.1.141:9995", "http://172.20.1.141:9995"],
+    ["http://10.0.0.5/crm", "http://10.0.0.5/crm"],
+    ["http://192.168.1.20:3100", "http://192.168.1.20:3100"],
   ])("accepts %j", (value, baseUrl) => {
     expect(parseProductDestination(value)).toEqual({
       status: "configured",
@@ -36,6 +35,9 @@ describe("parseProductDestination", () => {
     ["ftp://crm.example.com", "unsupported-protocol"],
     ["http://crm.example.com", "insecure-http"],
     ["http://localhost.example.com", "insecure-http"],
+    ["http://172.32.0.1", "insecure-http"],
+    ["http://8.8.8.8", "insecure-http"],
+    ["http://10.example.com", "insecure-http"],
     ["https://user:secret@crm.example.com", "credentials"],
     ["https://token@crm.example.com", "credentials"],
     ["https://crm.example.com/?token=abc", "query-or-fragment"],
@@ -44,70 +46,6 @@ describe("parseProductDestination", () => {
     expect(parseProductDestination(value)).toEqual({
       status: "invalid",
       problem,
-    });
-  });
-});
-
-describe("getProductDestinations", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.restoreAllMocks();
-  });
-
-  it("reads each product from its own variable", () => {
-    vi.stubEnv("NEXT_PUBLIC_CRM_APP_URL", "https://crm.example.com");
-    vi.stubEnv(
-      "NEXT_PUBLIC_COMMUNITY_ADMIN_APP_URL",
-      "https://apps.example.com/community/",
-    );
-
-    expect(getProductDestinations()).toEqual({
-      crm: { status: "configured", baseUrl: "https://crm.example.com" },
-      communityAdmin: {
-        status: "configured",
-        baseUrl: "https://apps.example.com/community",
-      },
-    });
-  });
-
-  it("reports problems without logging the rejected value", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.stubEnv(
-      "NEXT_PUBLIC_CRM_APP_URL",
-      "https://user:secret@crm.example.com",
-    );
-    vi.stubEnv("NEXT_PUBLIC_COMMUNITY_ADMIN_APP_URL", "");
-
-    expect(getProductDestinations()).toEqual({
-      crm: { status: "invalid", problem: "credentials" },
-      communityAdmin: { status: "missing" },
-    });
-    expect(warn).toHaveBeenCalledTimes(2);
-    expect(warn.mock.calls.flat().join(" ")).not.toContain("secret");
-  });
-});
-
-describe("getProductEntry", () => {
-  it("keeps the selected locale for products that serve it", () => {
-    expect(getProductEntry("crm", "http://localhost:3100", "ar")).toEqual({
-      href: "http://localhost:3100/ar",
-      hrefLang: "ar",
-    });
-    expect(
-      getProductEntry(
-        "communityAdmin",
-        "https://apps.example.com/community",
-        "en",
-      ),
-    ).toEqual({
-      href: "https://apps.example.com/community/en",
-      hrefLang: "en",
-    });
-  });
-
-  it("links to the product root for a locale the product does not serve", () => {
-    expect(getProductEntry("crm", "http://localhost:3100", "fr")).toEqual({
-      href: "http://localhost:3100/",
     });
   });
 });

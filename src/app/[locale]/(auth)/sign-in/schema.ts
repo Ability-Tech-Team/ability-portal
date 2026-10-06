@@ -30,3 +30,21 @@ export function validateSignInFields({
 
   return errors;
 }
+
+/** The Portal API's client code format. */
+const CLIENT_CODE_PATTERN = /^[a-z0-9][a-z0-9-]{1,29}$/;
+
+/** A chosen client code, or undefined when none or a malformed one was sent. */
+export function parseClientCode(value: string): string | undefined {
+  return CLIENT_CODE_PATTERN.test(value) ? value : undefined;
+}
+
+/** A chosen project ID, or undefined when none or a malformed one was sent. */
+export function parseProjectId(value: string): number | undefined {
+  if (!/^\d{1,9}$/.test(value)) {
+    return undefined;
+  }
+
+  const id = Number(value);
+  return id >= 1 ? id : undefined;
+}

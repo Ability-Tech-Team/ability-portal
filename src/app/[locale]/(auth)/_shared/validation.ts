@@ -9,7 +9,8 @@ const EMAIL_PATTERN =
   /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 export const EMAIL_MAX_LENGTH = 254;
-export const SIGN_IN_PASSWORD_MAX_LENGTH = 256;
+/** The Portal API's login limit (`LoginDto`). */
+export const SIGN_IN_PASSWORD_MAX_LENGTH = 128;
 export const NEW_PASSWORD_MIN_LENGTH = 15;
 export const NEW_PASSWORD_MAX_LENGTH = 128;
 

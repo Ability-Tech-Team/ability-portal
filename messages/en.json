@@ -20,10 +20,7 @@
     "locked": "Locked for your account.",
     "lockedDescription": "Contact Ability Tech to unlock {product}.",
     "unavailable": "Not available right now.",
-    "unavailableDescription": "Contact Ability Tech if you need {product}.",
-    "accessCheckFailedTitle": "We couldn’t check your access",
-    "accessCheckFailedDescription": "The sign-in service didn’t answer, so no product can be opened right now. Try again in a moment.",
-    "tryAgain": "Try again"
+    "unavailableDescription": "Contact Ability Tech if you need {product}."
   },
   "Account": {
     "signedInAs": "Signed in as",
@@ -50,12 +47,19 @@
     "title": "Sign in to your <highlight>portal</highlight>",
     "intro": "Use the email address and password of your Ability Tech account.",
     "formTitle": "Sign in",
-    "continueTo": "Sign in to continue to {product}.",
     "forgotPassword": "Forgot your password?",
     "submit": "Sign in",
     "submitting": "Signing in…",
     "invalidCredentials": "The email address or password is incorrect.",
     "accountDisabled": "This account is disabled. Contact Ability Tech.",
+    "chooseClient": "Choose a company",
+    "chooseClientHint": "This email address has an account with more than one company. Choose the one to sign in to.",
+    "chooseProject": "Choose a project",
+    "chooseProjectHint": "Your account at {client} can open more than one project. Choose the one to sign in to.",
+    "choiceRequired": "Choose one to continue.",
+    "signingInAs": "Signing in as <email></email>",
+    "continue": "Continue",
+    "useAnotherAccount": "Use a different email address",
     "noAccount": "Ability Tech creates the accounts of its clients. If you don’t have one yet, contact Ability Tech.",
     "notices": {
       "signed-out": "You’ve signed out.",

@@ -1,98 +1,138 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
-import {
-  getSession,
-  signOut,
-  type NewSession,
-} from "@/src/services/accountService";
-import type { AccountSummary, ProductAccess } from "@/src/types/account";
+import type {
+  AccountSummary,
+  Platform,
+  ProductAccess,
+} from "@/src/types/account";
+import { readTokenExpiry } from "./accessToken";
 import { parseEndUserIp } from "./endUserIp";
+import type { ProductDestination, ProductKey } from "./productDestinations";
 import {
+  decodePortalSession,
+  encodePortalSession,
+  toProductAccess,
+  toProductDestinations,
+} from "./portalSession";
+import {
+  ACCESS_TOKEN_COOKIE_NAME,
   buildSessionCookieOptions,
+  cookieDomainForHost,
   parseCookieDomain,
-  SESSION_COOKIE_NAME,
+  PORTAL_SESSION_COOKIE_NAME,
   shouldUseSecureCookie,
 } from "./sessionCookie";
-import { isWellFormedToken } from "./tokens";
 
 export type CurrentSession =
-  | { status: "active"; account: AccountSummary; products: ProductAccess }
-  /** `ended`: a session cookie was sent, but the session is no longer valid. */
-  | { status: "signed-out"; ended: boolean }
-  | { status: "unavailable" };
+  | {
+      status: "active";
+      account: AccountSummary;
+      products: ProductAccess;
+      destinations: Record<ProductKey, ProductDestination>;
+    }
+  /** `ended`: a token was sent, but it has expired or can't be read. */
+  | { status: "signed-out"; ended: boolean };
+
+export type NewSession = {
+  token: string;
+  expiresAt: Date;
+  account: AccountSummary;
+  platforms: Platform[];
+};
 
 let reportedInvalidDomain = false;
 
-async function readSessionToken(): Promise<string | null> {
-  const value = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
-  return isWellFormedToken(value) ? value : null;
-}
-
 /**
- * The signed-in client, checked with the account service on every request
- * (once per render), so locks and sign-outs apply immediately. Call it where
- * the data is used, not only in a layout.
+ * The signed-in client, from the cookies the sign-in set (once per render).
+ * The Portal API has no endpoint to check a session, so the Portal only
+ * checks that the access token hasn't expired; the products verify it.
+ * Call it where the data is used, not only in a layout.
  */
 export const getCurrentSession = cache(async (): Promise<CurrentSession> => {
-  const token = await readSessionToken();
+  const cookieStore = await cookies();
+  const token = cookieStore.get(ACCESS_TOKEN_COOKIE_NAME)?.value;
 
   if (!token) {
     return { status: "signed-out", ended: false };
   }
 
-  const result = await getSession(token);
+  const expiresAt = readTokenExpiry(token);
 
-  switch (result.status) {
-    case "active":
-      return {
-        status: "active",
-        account: result.account,
-        products: result.products,
-      };
-    case "invalid":
-      return { status: "signed-out", ended: true };
-    case "unavailable":
-      return { status: "unavailable" };
+  if (!expiresAt || expiresAt.getTime() <= Date.now()) {
+    return { status: "signed-out", ended: true };
   }
+
+  // A token without the Portal's record (e.g. set by a product's own
+  // sign-in) can't show who is signed in or their platforms.
+  const session = decodePortalSession(
+    cookieStore.get(PORTAL_SESSION_COOKIE_NAME)?.value,
+  );
+
+  if (!session) {
+    return { status: "signed-out", ended: false };
+  }
+
+  return {
+    status: "active",
+    account: session.account,
+    products: toProductAccess(session.platforms),
+    destinations: toProductDestinations(session.platforms),
+  };
 });
 
 /**
- * Stores a new session in the shared cookie, after ending the browser's
- * previous session, if any. Server Actions only.
+ * Stores the access token in the cookie shared with the products, and the
+ * Portal's record of the session on the Portal's own host. Both expire with
+ * the token. Server Actions only.
  */
 export async function startSession(session: NewSession): Promise<void> {
-  const previousToken = await readSessionToken();
+  const cookieStore = await cookies();
+  const options = await sessionCookieOptions(session.expiresAt);
 
-  if (previousToken && previousToken !== session.token) {
-    await signOut(previousToken);
-  }
-
-  (await cookies()).set(
-    SESSION_COOKIE_NAME,
-    session.token,
-    await sessionCookieOptions(session.expiresAt),
+  cookieStore.set(ACCESS_TOKEN_COOKIE_NAME, session.token, {
+    ...options,
+    domain: await getCookieDomain(),
+  });
+  cookieStore.set(
+    PORTAL_SESSION_COOKIE_NAME,
+    encodePortalSession({
+      account: session.account,
+      platforms: session.platforms,
+    }),
+    options,
   );
 }
 
 /**
- * Ends the session in the account service (best effort) and deletes the
- * cookie, with the attributes it was set with. Server Actions only.
+ * Deletes both cookies, with the attributes they were set with, which also
+ * signs the client out of the products that read the shared token. The
+ * Portal API's own logout only clears a cookie in its response, so it isn't
+ * called. Server Actions only.
  */
 export async function endSession(): Promise<void> {
-  const token = await readSessionToken();
-
-  if (token) {
-    await signOut(token);
-  }
-
-  (await cookies()).set(SESSION_COOKIE_NAME, "", {
+  const cookieStore = await cookies();
+  const options = {
     ...(await sessionCookieOptions(new Date(0))),
     maxAge: 0,
+  };
+
+  cookieStore.set(ACCESS_TOKEN_COOKIE_NAME, "", {
+    ...options,
+    domain: await getCookieDomain(),
   });
+  cookieStore.set(PORTAL_SESSION_COOKIE_NAME, "", options);
 }
 
-/** The client's IP address for the account service's rate limits. */
+/**
+ * The raw access token, for server-side calls on the client's behalf (the
+ * token-check page). Never pass it to a client component.
+ */
+export async function readAccessToken(): Promise<string | null> {
+  return (await cookies()).get(ACCESS_TOKEN_COOKIE_NAME)?.value ?? null;
+}
+
+/** The client's IP address for the services' rate limits. */
 export async function getEndUserIp(): Promise<string | undefined> {
   const requestHeaders = await headers();
   return parseEndUserIp(
@@ -101,13 +141,13 @@ export async function getEndUserIp(): Promise<string | undefined> {
   );
 }
 
+/** Host-only options; the shared token adds `getCookieDomain()`. */
 async function sessionCookieOptions(expires: Date) {
   const origin = (await headers()).get("origin");
 
   return buildSessionCookieOptions({
     expires,
     secure: shouldUseSecureCookie(origin),
-    domain: getCookieDomain(),
   });
 }
 
@@ -116,8 +156,11 @@ async function sessionCookieOptions(expires: Date) {
  * invalid value is reported and ignored: the cookie then stays on the Portal's
  * own host, and the products send clients back to sign in.
  */
-function getCookieDomain(): string | undefined {
+async function getCookieDomain(): Promise<string | undefined> {
   const setting = parseCookieDomain(process.env.SESSION_COOKIE_DOMAIN);
+  const requestHeaders = await headers();
+  const host =
+    requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
   if (setting.status === "invalid" && !reportedInvalidDomain) {
     reportedInvalidDomain = true;
@@ -126,5 +169,5 @@ function getCookieDomain(): string | undefined {
     );
   }
 
-  return setting.status === "configured" ? setting.domain : undefined;
+  return cookieDomainForHost(setting, host);
 }

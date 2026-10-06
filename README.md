@@ -30,11 +30,9 @@ npm run dev:portal   # or: npm --prefix Ability-Portal run dev -- --port 3300
 
 Open <http://localhost:3300>; `/` redirects to `/en` (or the browser's
 preferred supported locale), and a signed-out visitor lands on `/en/sign-in`.
-`/ar` renders right-to-left, and its cards link to the Arabic pages of each
-product. To follow the links locally, run `npm run dev` from `CRM/` instead: it
-starts the Portal, Ability CRM (3100), and Community Admin (3200) together (see
-`../README.md`). Signing in needs the account service running at
-`ACCOUNT_SERVICE_URL`.
+`/ar` renders right-to-left. Signing in needs the Portal API at
+`PORTAL_API_URL`. Each card opens the entry link the Portal API returned for
+that product in the client's login answer, unchanged.
 
 | Task | Command (from this directory) |
 | --- | --- |
@@ -98,64 +96,57 @@ The Portal uses the Ability Tech brand from <https://www.ability-tech.com/>
 | Forgot password | `/<locale>/forgot-password` |
 | Set password (invitation or reset link) | `/<locale>/set-password#token=…` |
 
-- The forms post to Server Actions, which call the account service from the
-  server. Passwords are never stored, logged, or put in URLs.
-- After sign-in, the Portal stores the service's session token in the
-  `ability_session` cookie (`HttpOnly`, `SameSite=Lax`, `Secure` except over
-  plain HTTP on localhost). Ability CRM and Community Admin read the same
-  cookie, so clients don't sign in twice. Every page checks the session with
-  the service, so sign-out, locks, and ended subscriptions apply at once.
-- `returnTo` is followed only into a configured product destination;
-  anything else opens the Portal home.
-- Sign-out (in the header) ends the session in the service and deletes the
-  cookie, which also signs the client out of both products.
+- The forms post to Server Actions, which call the services from the server.
+  Passwords are never stored, logged, or put in URLs.
+- Sign-in calls the Portal API (`POST /api/auth/login`; Swagger at
+  `<PORTAL_API_URL>/docs` outside production). When the email address belongs
+  to several clients, or the account to several projects, the form asks which
+  one and signs in again with the choice. The credentials for that second
+  request stay in the browser's memory, never in the action's state.
+- After sign-in, the Portal sets the client's token in the `access_token`
+  cookie (`HttpOnly`, `SameSite=Lax`, `Secure` except over plain HTTP on
+  localhost or a private IP address, `Domain` from `SESSION_COOKIE_DOMAIN`
+  when the Portal is opened under that domain), the cookie Ability CRM
+  and Community Admin read, so clients don't sign in twice. It also keeps who
+  signed in and their platforms in the `portal_session` cookie (`HttpOnly`,
+  the Portal's host only), because the Portal API has no endpoint to ask
+  again. Both expire with the token. The cards are presentation: each product
+  verifies the token itself.
+- `returnTo` is followed only to a page on the same site as one of the
+  client's platforms; anything else opens the Portal home.
+- Sign-out (in the header) deletes both cookies, which also signs the client
+  out of both products.
+- Forgot password and set password still call the account service; it
+  doesn't exist yet, so those pages report the service as unavailable.
 
 | Variable | Local value | Purpose |
 | --- | --- | --- |
-| `ACCOUNT_SERVICE_URL` | `http://localhost:3400` | The account service (server-only) |
+| `PORTAL_API_URL` | e.g. `http://localhost:4100` | The Portal API, without `/api` (server-only) |
+| `ACCOUNT_SERVICE_URL` | `http://localhost:3400` | The account service, for the password pages (server-only) |
 | `ACCOUNT_SERVICE_CLIENT_ID` | `ability-portal` | The Portal's app credentials, issued by the backend team |
 | `ACCOUNT_SERVICE_CLIENT_SECRET` | from the backend team | Keep it in `.env.local`; never commit it |
 | `SESSION_COOKIE_DOMAIN` | empty | Deployed: the parent domain shared with both products, e.g. `apps.ability-tech.com` |
 
 The server reads these when it starts; they are never sent to the browser. A
-missing or invalid value is logged by name, and sign-in then reports the
-service as unavailable. Deployments need a reverse proxy that sets
-`X-Real-IP` or `X-Forwarded-For` (used for the service's rate limits) and,
-with several instances, a stable `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
+missing or invalid value is logged by name, and the pages that need it then
+report the service as unavailable. Service URLs and product addresses must be
+absolute `https://` URLs; `http://` is accepted only for loopback hosts and
+private IPv4 addresses (10/8, 172.16/12, 192.168/16). Deployments need a
+reverse proxy that sets `X-Real-IP` or `X-Forwarded-For` (forwarded for the
+services' rate limits) and, with several instances, a stable
+`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
 
-## Product destinations
+## Docker
 
-| Variable | Card | Local value |
-| --- | --- | --- |
-| `NEXT_PUBLIC_CRM_APP_URL` | Ability CRM | `http://localhost:3100` |
-| `NEXT_PUBLIC_COMMUNITY_ADMIN_APP_URL` | Community Admin | `http://localhost:3200` |
-
-- These are public navigation settings, not secrets and not access decisions.
-  `.env.example` is tracked; `.env.local` and other `.env*` files are ignored.
-- Next.js inlines `NEXT_PUBLIC_*` values when you run `npm run build`. A built
-  portal keeps the values it was built with, so build each environment with
-  its own values. `npm run dev` reads them when the server starts. Values set
-  in the shell take precedence over `.env*` files, and `.env.local` also
-  applies to local production builds.
-- Each value must be an absolute `https://` URL. `http://` is accepted only for
-  `localhost`, `*.localhost`, `127.x.x.x`, and `[::1]`. Credentials, query
-  strings, and fragments are rejected. An optional base path is allowed, for
-  example `https://apps.example.com/crm`.
-- A missing or invalid value shows that card as "Configuration pending",
-  without a link. The server logs a warning naming the variable and the
-  problem, without the value.
-- The portal appends only the locale (`/en` or `/ar`) to the configured URL. It
-  never takes a destination from the request URL or query string and never
-  adds tokens or credentials to links.
-- The same destinations limit where the sign-in page may return a client.
-
-Example production build (placeholder hosts):
+The `Dockerfile` sets every environment value in its `ENV` block (edit it
+there), so the server needs no `.env`. On the server, from this directory:
 
 ```bash
-NEXT_PUBLIC_CRM_APP_URL=https://crm.example.com \
-NEXT_PUBLIC_COMMUNITY_ADMIN_APP_URL=https://community-admin.example.com \
-npm run build
+docker build -t ability-portal-stand-alone . && docker rm -f ability-portal-stand-alone 2>/dev/null; docker run -d --name ability-portal-stand-alone --restart unless-stopped -p 6539:6539 ability-portal-stand-alone
 ```
+
+The build downloads the web fonts from Google Fonts, so it needs internet
+access. The Portal then listens on port 6539.
 
 ## Structure
 
@@ -169,21 +160,25 @@ npm run build
 - `src/app/[locale]/components/ProductPreview.tsx` - decorative product
   miniatures
 - `src/app/[locale]/components/AccountBadge.tsx`, `SignOutForm.tsx`,
-  `SignOutButton.tsx`, `AccessCheckFailed.tsx` - who is signed in, sign-out,
-  and the error shown when the service doesn't answer
+  `SignOutButton.tsx` - who is signed in and sign-out
 - `src/app/[locale]/hooks/useProductCardPointer.ts`, `useProductLaunch.ts` -
   pointer tilt and spotlight; opening state
 - `src/app/[locale]/types.ts`, `utils.ts` - card view model, builder, and
   screen order
 - `src/app/[locale]/(auth)/sign-in/`, `forgot-password/`, `set-password/` -
   the sign-in pages, each with its page, Server Action, hook, form, and
-  types; `(auth)/_shared/` holds their shared fields and validation
-- `src/lib/session.ts` - reads, checks, sets, and deletes the session cookie
+  types; `sign-in/components/SignInChoice.tsx` is the client and project
+  choice; `(auth)/_shared/` holds their shared fields and validation
+- `src/lib/session.ts` - reads, sets, and deletes the session cookies
   (server-only)
-- `src/services/accountService.ts` - the account service calls (server-only)
-- `src/lib/returnTo.ts`, `sessionCookie.ts`, `tokens.ts`, `endUserIp.ts`,
-  `formData.ts`, `accountServiceConfig.ts`, `baseUrl.ts` - helpers (tested)
-- `src/lib/productDestinations.ts` - destination parsing, validation, and links
+- `src/services/portalApi.ts` - the Portal API login (server-only)
+- `src/services/accountService.ts` - the account service calls for the
+  password pages (server-only)
+- `src/lib/portalSession.ts`, `accessToken.ts`, `returnTo.ts`,
+  `sessionCookie.ts`, `tokens.ts`, `endUserIp.ts`, `formData.ts`,
+  `portalApiConfig.ts`, `accountServiceConfig.ts`, `baseUrl.ts` - helpers
+  (tested)
+- `src/lib/productDestinations.ts` - destination parsing and links
 - `src/lib/pointer.ts` - pure tilt and click helpers (tested)
 - `src/components/PortalShell.tsx`, `HeroBackdrop.tsx` - the frame of every
   page: header, navy hero, and footer

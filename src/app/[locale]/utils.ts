@@ -1,5 +1,4 @@
 import {
-  getProductEntry,
   PRODUCT_KEYS,
   type ProductDestination,
   type ProductKey,
@@ -21,11 +20,12 @@ export const PRODUCTS_LEFT_TO_RIGHT: readonly ProductKey[] = [
  * Builds one card per product for the signed-in client, in `PRODUCT_KEYS`
  * order (see `orderCardsForScreen` for the display order). The access state
  * decides first, so a locked product never shows its link; an available
- * product links only when its destination is configured.
+ * product links only when its destination is valid. The destination is the
+ * entry link the Portal API returned, used as is: it already holds the path
+ * (and locale) the product wants.
  */
 export function buildProductCards(
   destinations: Record<ProductKey, ProductDestination>,
-  locale: string,
   access: ProductAccess,
 ): ProductCardModel[] {
   return PRODUCT_KEYS.map((key): ProductCardModel => {
@@ -46,11 +46,7 @@ export function buildProductCards(
       return { key, state: "configuration-pending" };
     }
 
-    return {
-      key,
-      state: "available",
-      ...getProductEntry(key, destination.baseUrl, locale),
-    };
+    return { key, state: "available", href: destination.baseUrl };
   });
 }
 

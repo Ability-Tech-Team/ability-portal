@@ -6,12 +6,9 @@ import LocaleSwitcher from "@/src/components/LocaleSwitcher";
 import PortalShell from "@/src/components/PortalShell";
 import { redirect } from "@/src/i18n/navigation";
 import { getLocaleDirection, routing } from "@/src/i18n/routing";
-import {
-  getProductDestinations,
-  type ProductKey,
-} from "@/src/lib/productDestinations";
+import type { ProductKey } from "@/src/lib/productDestinations";
 import { getCurrentSession } from "@/src/lib/session";
-import AccessCheckFailed from "./components/AccessCheckFailed";
+import { getCrmCheckUrl } from "@/src/services/crmApi";
 import AccountBadge from "./components/AccountBadge";
 import ProductCard from "./components/ProductCard";
 import SignOutForm from "./components/SignOutForm";
@@ -54,25 +51,19 @@ export default async function ProductSelectionPage({ params }: Props) {
     </>
   );
 
-  if (session.status === "unavailable") {
-    return (
-      <PortalShell
-        headerActions={headerActions}
-        eyebrow={t("eyebrow")}
-        title={t.rich("title", { highlight })}
-        titleId="product-selection-title"
-      >
-        <AccessCheckFailed />
-      </PortalShell>
-    );
-  }
-
   const direction = hasLocale(routing.locales, locale)
     ? getLocaleDirection(locale)
     : "ltr";
+  // Diagnostic: while CRM_API_URL is set, the Ability CRM card opens the
+  // token-check page instead of the CRM (it links on to the CRM from there).
+  const tokenCheck = getCrmCheckUrl() !== null;
   const cards = orderCardsForScreen(
-    buildProductCards(getProductDestinations(), locale, session.products),
+    buildProductCards(session.destinations, session.products),
     direction,
+  ).map((card) =>
+    tokenCheck && card.key === "crm" && card.state === "available"
+      ? { ...card, href: `/${locale}/token-check` }
+      : card,
   );
 
   function cardNotice(card: ProductCardModel, product: string) {

@@ -1,11 +1,17 @@
-import { isLoopbackHost } from "./baseUrl";
+import { isLoopbackHost, isPrivateNetworkHost } from "./baseUrl";
 
 /**
- * The session cookie shared by the Portal, Ability CRM, and Community Admin
- * (docs/ACCOUNT-SERVICE-API.md, section 7). Only the Portal sets and deletes
- * it; the products only read it.
+ * The client's token from the Portal API, shared with Ability CRM and
+ * Community Admin: the same name and options as the products' own cookie, so
+ * they read it and their sign-out clears it.
  */
-export const SESSION_COOKIE_NAME = "ability_session";
+export const ACCESS_TOKEN_COOKIE_NAME = "access_token";
+
+/**
+ * What the Portal shows for the session (who signed in and their platforms),
+ * on the Portal's own host only. Presentation, never an access decision.
+ */
+export const PORTAL_SESSION_COOKIE_NAME = "portal_session";
 
 export type CookieDomainSetting =
   | { status: "unset" }
@@ -34,8 +40,10 @@ export function parseCookieDomain(value: string | undefined): CookieDomainSettin
 
 /**
  * Whether the cookie gets `Secure`: always, except when the request comes
- * from a plain-HTTP loopback origin during local development. A missing or
- * unreadable origin keeps `Secure`.
+ * from a plain-HTTP origin on a loopback host (local development) or a
+ * private IPv4 address (an internal deployment opened by IP), where browsers
+ * would drop a `Secure` cookie. A missing or unreadable origin keeps
+ * `Secure`.
  */
 export function shouldUseSecureCookie(origin: string | null): boolean {
   if (!origin) {
@@ -44,10 +52,33 @@ export function shouldUseSecureCookie(origin: string | null): boolean {
 
   try {
     const url = new URL(origin);
-    return !(url.protocol === "http:" && isLoopbackHost(url.hostname));
+    return !(
+      url.protocol === "http:" &&
+      (isLoopbackHost(url.hostname) || isPrivateNetworkHost(url.hostname))
+    );
   } catch {
     return true;
   }
+}
+
+/**
+ * The `Domain` for the shared cookie: the configured parent domain when the
+ * Portal is served from a host inside it (browsers reject any other), and
+ * none otherwise, which keeps the cookie on the Portal's own host. So one
+ * build works both on portal.ability-tech.com and when opened by IP.
+ */
+export function cookieDomainForHost(
+  setting: CookieDomainSetting,
+  host: string | null,
+): string | undefined {
+  if (setting.status !== "configured" || !host) {
+    return undefined;
+  }
+
+  const hostname = host.trim().toLowerCase().replace(/:\d+$/, "");
+  return hostname === setting.domain || hostname.endsWith(`.${setting.domain}`)
+    ? setting.domain
+    : undefined;
 }
 
 export type SessionCookieOptions = {

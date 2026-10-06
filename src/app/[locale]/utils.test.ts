@@ -5,7 +5,10 @@ import type { ProductCardModel } from "./types";
 import { buildProductCards, orderCardsForScreen } from "./utils";
 
 const configured: Record<ProductKey, ProductDestination> = {
-  crm: { status: "configured", baseUrl: "http://localhost:3100" },
+  crm: {
+    status: "configured",
+    baseUrl: "https://crm.ability-tech.com/en/dashboard/statistics",
+  },
   communityAdmin: { status: "configured", baseUrl: "http://localhost:3200" },
 };
 
@@ -15,25 +18,23 @@ const bothAvailable: ProductAccess = {
 };
 
 describe("buildProductCards", () => {
-  it("links available products in the page's locale", () => {
-    expect(buildProductCards(configured, "ar", bothAvailable)).toEqual([
+  it("links available products to the returned entry link, unchanged", () => {
+    expect(buildProductCards(configured, bothAvailable)).toEqual([
       {
         key: "crm",
         state: "available",
-        href: "http://localhost:3100/ar",
-        hrefLang: "ar",
+        href: "https://crm.ability-tech.com/en/dashboard/statistics",
       },
       {
         key: "communityAdmin",
         state: "available",
-        href: "http://localhost:3200/ar",
-        hrefLang: "ar",
+        href: "http://localhost:3200",
       },
     ]);
   });
 
   it("locks products outside the subscription or locked for the client, without a link", () => {
-    const cards = buildProductCards(configured, "en", {
+    const cards = buildProductCards(configured, {
       crm: "not_subscribed",
       communityAdmin: "locked",
     });
@@ -45,7 +46,7 @@ describe("buildProductCards", () => {
   });
 
   it("never opens a product whose state is unknown", () => {
-    const cards = buildProductCards(configured, "en", {
+    const cards = buildProductCards(configured, {
       crm: "unknown",
       communityAdmin: "available",
     });
@@ -60,7 +61,6 @@ describe("buildProductCards", () => {
         crm: { status: "missing" },
         communityAdmin: { status: "invalid", problem: "credentials" },
       },
-      "en",
       bothAvailable,
     );
 
@@ -74,7 +74,6 @@ describe("buildProductCards", () => {
   it("shows the access state, not the configuration, for products the client can't open", () => {
     const cards = buildProductCards(
       { crm: { status: "missing" }, communityAdmin: { status: "missing" } },
-      "en",
       { crm: "locked", communityAdmin: "not_subscribed" },
     );
 

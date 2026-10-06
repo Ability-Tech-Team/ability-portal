@@ -1,26 +1,18 @@
 import "server-only";
 import { z } from "zod";
 import { getAccountServiceConfig } from "@/src/lib/accountServiceConfig";
-import { isWellFormedToken } from "@/src/lib/tokens";
-import type {
-  AccountSummary,
-  PasswordRule,
-  ProductAccess,
-  ProductAccessState,
-} from "@/src/types/account";
+import type { PasswordRule } from "@/src/types/account";
 
 /**
- * Calls to the central account service, which Ability-Tech's backend team
- * builds. docs/ACCOUNT-SERVICE-API.md defines every endpoint, status, and
- * error code handled here. Anything outside the contract (no configuration,
+ * Calls to the central account service for the password pages (forgot
+ * password, set password); sign-in goes to the Portal API
+ * (`portalApi.ts`). docs/ACCOUNT-SERVICE-API.md defines every endpoint,
+ * status, and error code handled here. Anything outside the contract (no configuration,
  * network errors, timeouts, 5xx, unexpected bodies) is reported as
  * "unavailable", which never grants access.
  */
 
-const SESSION_TIMEOUT_MS = 5_000;
 const REQUEST_TIMEOUT_MS = 10_000;
-
-export type NewSession = { token: string; expiresAt: Date };
 
 type Unavailable = { ok: false; reason: "unavailable" };
 
@@ -29,17 +21,6 @@ type TooManyAttempts = {
   reason: "too_many_attempts";
   retryAfterSeconds: number | null;
 };
-
-export type SignInResult =
-  | { ok: true; session: NewSession }
-  | { ok: false; reason: "invalid_credentials" | "account_disabled" }
-  | TooManyAttempts
-  | Unavailable;
-
-export type SessionResult =
-  | { status: "active"; account: AccountSummary; products: ProductAccess }
-  | { status: "invalid" }
-  | { status: "unavailable" };
 
 export type PasswordResetResult = { ok: true } | TooManyAttempts | Unavailable;
 
@@ -57,26 +38,6 @@ export type SetPasswordResult =
   | Unavailable;
 
 const UNAVAILABLE: Unavailable = { ok: false, reason: "unavailable" };
-
-const accountSchema = z.object({
-  id: z.string().min(1),
-  email: z.string().min(1),
-  name: z.string(),
-});
-
-const signInResponseSchema = z.object({
-  session: z.object({
-    token: z.string().refine(isWellFormedToken),
-    expiresAt: z.iso.datetime({ offset: true }),
-  }),
-});
-
-const sessionResponseSchema = z.object({
-  account: accountSchema,
-  products: z.record(z.string(), z.unknown()),
-});
-
-const productEntrySchema = z.object({ state: z.string() });
 
 const errorResponseSchema = z.object({
   error: z.object({
@@ -98,101 +59,9 @@ type ServiceResponse = {
 type CallOptions = {
   method: "GET" | "POST";
   body?: Record<string, string>;
-  sessionToken?: string;
   endUserIp?: string;
   timeoutMs: number;
 };
-
-export async function signIn(input: {
-  email: string;
-  password: string;
-  endUserIp?: string;
-}): Promise<SignInResult> {
-  const path = "/v1/auth/sign-in";
-  const response = await callAccountService(path, {
-    method: "POST",
-    body: { email: input.email, password: input.password },
-    endUserIp: input.endUserIp,
-    timeoutMs: REQUEST_TIMEOUT_MS,
-  });
-
-  if (!response) {
-    return UNAVAILABLE;
-  }
-
-  if (response.status === 200) {
-    const parsed = signInResponseSchema.safeParse(response.body);
-
-    if (parsed.success) {
-      const { token, expiresAt } = parsed.data.session;
-      return { ok: true, session: { token, expiresAt: new Date(expiresAt) } };
-    }
-  } else {
-    const code = readError(response.body)?.code;
-
-    if (response.status === 401 && code === "invalid_credentials") {
-      return { ok: false, reason: "invalid_credentials" };
-    }
-
-    if (response.status === 403 && code === "account_disabled") {
-      return { ok: false, reason: "account_disabled" };
-    }
-
-    if (response.status === 429) {
-      return tooManyAttempts(response);
-    }
-  }
-
-  reportUnexpected("POST", path, response);
-  return UNAVAILABLE;
-}
-
-export async function getSession(token: string): Promise<SessionResult> {
-  const path = "/v1/auth/session";
-  const response = await callAccountService(path, {
-    method: "GET",
-    sessionToken: token,
-    timeoutMs: SESSION_TIMEOUT_MS,
-  });
-
-  if (!response) {
-    return { status: "unavailable" };
-  }
-
-  if (response.status === 200) {
-    const parsed = sessionResponseSchema.safeParse(response.body);
-
-    if (parsed.success) {
-      return {
-        status: "active",
-        account: parsed.data.account,
-        products: toProductAccess(parsed.data.products),
-      };
-    }
-  } else if (
-    response.status === 401 &&
-    readError(response.body)?.code === "session_invalid"
-  ) {
-    return { status: "invalid" };
-  }
-
-  reportUnexpected("GET", path, response);
-  return { status: "unavailable" };
-}
-
-/** Ends the session in the account service; failures are only logged. */
-export async function signOut(token: string): Promise<void> {
-  const path = "/v1/auth/sign-out";
-  const response = await callAccountService(path, {
-    method: "POST",
-    sessionToken: token,
-    timeoutMs: REQUEST_TIMEOUT_MS,
-  });
-
-  if (response && !isSuccess(response.status)) {
-    reportUnexpected("POST", path, response);
-  }
-}
 
 export async function requestPasswordReset(input: {
   email: string;
@@ -289,10 +158,6 @@ async function callAccountService(
     headers.set("Content-Type", "application/json");
   }
 
-  if (options.sessionToken) {
-    headers.set("X-Session-Token", options.sessionToken);
-  }
-
   if (options.endUserIp) {
     headers.set("X-End-User-IP", options.endUserIp);
   }
@@ -370,24 +235,6 @@ function tooManyAttempts(response: ServiceResponse): TooManyAttempts {
     reason: "too_many_attempts",
     retryAfterSeconds: response.retryAfterSeconds,
   };
-}
-
-function toProductAccess(products: Record<string, unknown>): ProductAccess {
-  return {
-    crm: toAccessState(products.crm),
-    communityAdmin: toAccessState(products.communityAdmin),
-  };
-}
-
-function toAccessState(entry: unknown): ProductAccessState {
-  const parsed = productEntrySchema.safeParse(entry);
-  const state = parsed.success ? parsed.data.state : null;
-
-  return state === "available" ||
-    state === "not_subscribed" ||
-    state === "locked"
-    ? state
-    : "unknown";
 }
 
 function toPasswordRule(reason: string | undefined): PasswordRule {

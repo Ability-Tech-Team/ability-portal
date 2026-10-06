@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProductDestination, ProductKey } from "./productDestinations";
-import { resolveReturnTo } from "./returnTo";
+import { readReturnToParam, resolveReturnTo } from "./returnTo";
 
 const destinations: Record<ProductKey, ProductDestination> = {
   crm: { status: "configured", baseUrl: "https://apps.example.com/crm" },
@@ -53,5 +53,24 @@ describe("resolveReturnTo", () => {
         communityAdmin: { status: "missing" },
       }),
     ).toBeNull();
+  });
+});
+
+describe("readReturnToParam", () => {
+  it("keeps an absolute http(s) address without its fragment", () => {
+    expect(readReturnToParam("https://crm.client.example/en/leads#top")).toBe(
+      "https://crm.client.example/en/leads",
+    );
+  });
+
+  it.each([
+    undefined,
+    "",
+    "/en",
+    "javascript:alert(1)",
+    "https://user:pass@crm.client.example",
+    `https://crm.client.example/${"a".repeat(2048)}`,
+  ])("rejects %j", (value) => {
+    expect(readReturnToParam(value)).toBeNull();
   });
 });
