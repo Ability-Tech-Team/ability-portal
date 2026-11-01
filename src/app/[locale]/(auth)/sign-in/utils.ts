@@ -1,10 +1,6 @@
 import type { SignInNotice } from "./types";
 
-const notices: readonly SignInNotice[] = [
-  "signed-out",
-  "session-ended",
-  "password-set",
-];
+const notices: readonly SignInNotice[] = ["signed-out", "session-ended"];
 
 /** Only known notices are shown; any other value is ignored. */
 export function parseSignInNotice(value: unknown): SignInNotice | null {

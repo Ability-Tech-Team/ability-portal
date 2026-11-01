@@ -1,7 +1,6 @@
 import { useLocale, useTranslations } from "next-intl";
 import { getPathname, Link } from "@/src/i18n/navigation";
 import { routing } from "@/src/i18n/routing";
-import FragmentPreservingLink from "./FragmentPreservingLink";
 
 const itemClassName =
   "inline-flex h-8 min-w-11 items-center justify-center rounded-full px-3 text-sm font-bold";
@@ -11,8 +10,6 @@ const linkClassName = `${itemClassName} text-at-navy-800 transition-colors hover
 type LocaleSwitcherProps = {
   /** The page to open in the other language; the portal home by default. */
   href?: Parameters<typeof getPathname>[0]["href"];
-  /** Carries the URL fragment along, for pages that keep a token in it. */
-  keepFragment?: boolean;
 };
 
 /**
@@ -20,10 +17,7 @@ type LocaleSwitcherProps = {
  * current language is highlighted, and each other language is a link to the
  * same page in that language. Screen readers hear the full language names.
  */
-export default function LocaleSwitcher({
-  href = "/",
-  keepFragment = false,
-}: LocaleSwitcherProps) {
+export default function LocaleSwitcher({ href = "/" }: LocaleSwitcherProps) {
   const t = useTranslations("LocaleSwitcher");
   const locale = useLocale();
 
@@ -49,16 +43,6 @@ export default function LocaleSwitcher({
           >
             {content}
           </span>
-        ) : keepFragment ? (
-          <FragmentPreservingLink
-            key={item}
-            href={getPathname({ href, locale: item })}
-            hrefLang={item}
-            lang={item}
-            className={linkClassName}
-          >
-            {content}
-          </FragmentPreservingLink>
         ) : (
           <Link
             key={item}

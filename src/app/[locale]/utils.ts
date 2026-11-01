@@ -4,7 +4,7 @@ import {
   type ProductDestination,
   type ProductKey,
 } from "@/src/lib/productDestinations";
-import type { ProductAccess } from "@/src/types/account";
+import type { ProductAccess } from "@/src/lib/signInAnswer";
 import type { ProductCardModel } from "./types";
 
 /**
@@ -18,10 +18,10 @@ export const PRODUCTS_LEFT_TO_RIGHT: readonly ProductKey[] = [
 ];
 
 /**
- * Builds one card per product for the signed-in client, in `PRODUCT_KEYS`
+ * Builds one card per product for the signed-in user, in `PRODUCT_KEYS`
  * order (see `orderCardsForScreen` for the display order). The access state
- * decides first, so a locked product never shows its link; an available
- * product links only when its destination is configured.
+ * decides first, so a product that isn't included never shows its link; an
+ * available product links only when its destination is configured.
  */
 export function buildProductCards(
   destinations: Record<ProductKey, ProductDestination>,
@@ -29,15 +29,8 @@ export function buildProductCards(
   access: ProductAccess,
 ): ProductCardModel[] {
   return PRODUCT_KEYS.map((key): ProductCardModel => {
-    switch (access[key]) {
-      case "not_subscribed":
-        return { key, state: "not-subscribed" };
-      case "locked":
-        return { key, state: "locked" };
-      case "available":
-        break;
-      default:
-        return { key, state: "unavailable" };
+    if (access[key] !== "available") {
+      return { key, state: "not-included" };
     }
 
     const destination = destinations[key];

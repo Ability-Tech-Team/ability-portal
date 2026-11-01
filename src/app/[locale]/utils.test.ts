@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ProductDestination, ProductKey } from "@/src/lib/productDestinations";
-import type { ProductAccess } from "@/src/types/account";
+import type { ProductAccess } from "@/src/lib/signInAnswer";
 import type { ProductCardModel } from "./types";
 import { buildProductCards, orderCardsForScreen } from "./utils";
 
@@ -32,26 +32,14 @@ describe("buildProductCards", () => {
     ]);
   });
 
-  it("locks products outside the subscription or locked for the client, without a link", () => {
+  it("gives products the sign-in doesn't include no link", () => {
     const cards = buildProductCards(configured, "en", {
-      crm: "not_subscribed",
-      communityAdmin: "locked",
+      crm: "available",
+      communityAdmin: "not_included",
     });
 
-    expect(cards).toEqual([
-      { key: "crm", state: "not-subscribed" },
-      { key: "communityAdmin", state: "locked" },
-    ]);
-  });
-
-  it("never opens a product whose state is unknown", () => {
-    const cards = buildProductCards(configured, "en", {
-      crm: "unknown",
-      communityAdmin: "available",
-    });
-
-    expect(cards[0]).toEqual({ key: "crm", state: "unavailable" });
-    expect(cards[1].state).toBe("available");
+    expect(cards[0].state).toBe("available");
+    expect(cards[1]).toEqual({ key: "communityAdmin", state: "not-included" });
   });
 
   it("gives available products without a valid destination no link", () => {
@@ -75,12 +63,12 @@ describe("buildProductCards", () => {
     const cards = buildProductCards(
       { crm: { status: "missing" }, communityAdmin: { status: "missing" } },
       "en",
-      { crm: "locked", communityAdmin: "not_subscribed" },
+      { crm: "not_included", communityAdmin: "not_included" },
     );
 
     expect(cards.map((card) => card.state)).toEqual([
-      "locked",
-      "not-subscribed",
+      "not-included",
+      "not-included",
     ]);
   });
 });

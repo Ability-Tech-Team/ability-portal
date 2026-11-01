@@ -1,12 +1,14 @@
 import {
+  countCharacters,
   SIGN_IN_PASSWORD_MAX_LENGTH,
   validateEmail,
 } from "../_shared/validation";
 import type { SignInFieldErrors } from "./types";
 
 /**
- * Checks the sign-in fields before calling the account service. The email is
- * expected trimmed; the password is checked exactly as typed.
+ * Checks the sign-in fields before calling the portal backend, with its
+ * limits. The email is expected trimmed; the password is checked exactly as
+ * typed.
  */
 export function validateSignInFields({
   email,
@@ -24,7 +26,7 @@ export function validateSignInFields({
 
   if (!password) {
     errors.password = "password_required";
-  } else if (password.length > SIGN_IN_PASSWORD_MAX_LENGTH) {
+  } else if (countCharacters(password) > SIGN_IN_PASSWORD_MAX_LENGTH) {
     errors.password = "password_too_long";
   }
 

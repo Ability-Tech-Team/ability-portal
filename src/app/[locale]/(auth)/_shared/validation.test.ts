@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { validateSignInFields } from "../sign-in/schema";
 import { parseSignInNotice } from "../sign-in/utils";
-import { readTokenFromHash, toPasswordFieldError } from "../set-password/utils";
-import {
-  countCharacters,
-  toRetryMinutes,
-  validateEmail,
-  validateNewPassword,
-} from "./validation";
+import { countCharacters, toRetryMinutes, validateEmail } from "./validation";
 
 describe("validateEmail", () => {
   it.each(["owner@client.example", "o'brien+crm@sub.example.co"])(
@@ -43,36 +37,20 @@ describe("validateSignInFields", () => {
     });
   });
 
-  it("rejects passwords longer than the contract allows", () => {
+  it("rejects passwords longer than the backend allows (128)", () => {
     expect(
-      validateSignInFields({ email: "a@b.co", password: "x".repeat(257) })
+      validateSignInFields({ email: "a@b.co", password: "x".repeat(128) }),
+    ).toEqual({});
+    expect(
+      validateSignInFields({ email: "a@b.co", password: "x".repeat(129) })
         .password,
     ).toBe("password_too_long");
   });
-});
-
-describe("validateNewPassword", () => {
-  const fifteen = "correct horse b";
-
-  it("accepts 15 characters that match", () => {
-    expect(validateNewPassword(fifteen, fifteen)).toEqual({});
-  });
 
   it("counts Unicode characters, not UTF-16 units", () => {
-    const emoji = "🔑".repeat(14);
-    expect(countCharacters(emoji)).toBe(14);
-    expect(validateNewPassword(emoji, emoji).password).toBe(
-      "password_too_short",
-    );
-  });
-
-  it.each([
-    ["", "", { password: "password_required", confirmPassword: "confirmation_required" }],
-    ["short", "short", { password: "password_too_short" }],
-    ["x".repeat(129), "x".repeat(129), { password: "password_too_long" }],
-    [fifteen, `${fifteen}!`, { confirmPassword: "confirmation_mismatch" }],
-  ])("checks %j / %j", (password, confirmation, expected) => {
-    expect(validateNewPassword(password, confirmation)).toEqual(expected);
+    const keys = "🔑".repeat(128);
+    expect(countCharacters(keys)).toBe(128);
+    expect(validateSignInFields({ email: "a@b.co", password: keys })).toEqual({});
   });
 });
 
@@ -90,31 +68,9 @@ describe("toRetryMinutes", () => {
 
 describe("parseSignInNotice", () => {
   it("accepts only known notices", () => {
-    expect(parseSignInNotice("password-set")).toBe("password-set");
+    expect(parseSignInNotice("session-ended")).toBe("session-ended");
+    expect(parseSignInNotice("password-set")).toBeNull();
     expect(parseSignInNotice("<b>hi</b>")).toBeNull();
     expect(parseSignInNotice(undefined)).toBeNull();
-  });
-});
-
-describe("readTokenFromHash", () => {
-  const token = "T".repeat(43);
-
-  it("reads the token from the fragment", () => {
-    expect(readTokenFromHash(`#token=${token}`)).toBe(token);
-  });
-
-  it.each(["", "#", "#token=short", `#other=${token}`])(
-    "finds no token in %j",
-    (hash) => {
-      expect(readTokenFromHash(hash)).toBeNull();
-    },
-  );
-});
-
-describe("toPasswordFieldError", () => {
-  it("maps each rule to a field error", () => {
-    expect(toPasswordFieldError("too_short")).toBe("password_too_short");
-    expect(toPasswordFieldError("too_common")).toBe("password_too_common");
-    expect(toPasswordFieldError("other")).toBe("password_rejected");
   });
 });

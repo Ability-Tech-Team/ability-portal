@@ -30,22 +30,19 @@ export default async function SignInPage({ params, searchParams }: Props) {
   );
   const session = await getCurrentSession();
 
-  if (session.status === "active") {
-    if (returnTarget) {
-      // A product only sends clients here when it can't read their session,
-      // so going back would loop. The cookie domain is the usual cause.
-      console.warn(
-        "A product sent a signed-in client to sign in; check that SESSION_COOKIE_DOMAIN covers the product's host.",
-      );
-    }
-
+  // A product sends a signed-in user here only when its API no longer accepts
+  // the session, so the form is shown again instead of going back, which
+  // would loop.
+  if (session.status === "active" && !returnTarget) {
     return redirect({ href: "/", locale });
   }
 
   const t = await getTranslations("SignIn");
   const tHome = await getTranslations("Home");
   const tProducts = await getTranslations("Products");
-  const notice = parseSignInNotice(firstSearchParam(query.notice));
+  const notice =
+    parseSignInNotice(firstSearchParam(query.notice)) ??
+    (session.status === "active" ? "session-ended" : null);
 
   return (
     <PortalShell

@@ -1,17 +1,17 @@
 # Ability Portal
 
 Ability Portal is the single client-facing entry point to Ability Tech's
-commercial products, in the Ability Tech brand. Clients sign in with an email
-address and a password (one account per client). The home page then shows two
-animated product cards, **Community Admin** and **Ability CRM** (on the right
-in both languages). A product in the client's subscription opens its
-separately deployed app in the selected language; the other card shows why it
-is locked.
+commercial products, in the Ability Tech brand. Users sign in with the email
+address and password of their client's backend, through the portal backend.
+The home page then shows two animated product cards, **Community Admin** and
+**Ability CRM** (on the right in both languages). A product that the sign-in
+lists for the user opens its separately deployed app in the selected
+language; the other card says it isn't included.
 
-The account service behind the sign-in is built by Ability-Tech's backend
-team to `../docs/ACCOUNT-SERVICE-API.md`. It doesn't exist yet: until it runs,
-the sign-in page reports the service as unavailable. A card is never an access
-decision: each product and its API enforce access themselves.
+The dev portal backend doesn't answer CORS for the Portal's origin yet, so
+the browser blocks the sign-in, which reports the service as unavailable. A
+card is never an access decision: each product and its API enforce access
+themselves.
 
 Read `../AGENTS.md` and `../docs/MIGRATION.md` before working here.
 
@@ -33,8 +33,8 @@ preferred supported locale), and a signed-out visitor lands on `/en/sign-in`.
 `/ar` renders right-to-left, and its cards link to the Arabic pages of each
 product. To follow the links locally, run `npm run dev` from `CRM/` instead: it
 starts the Portal, Ability CRM (3100), and Community Admin (3200) together (see
-`../README.md`). Signing in needs the account service running at
-`ACCOUNT_SERVICE_URL`.
+`../README.md`). Signing in needs the portal backend at
+`NEXT_PUBLIC_PORTAL_API_URL`, with the Portal's origin in its CORS allowlist.
 
 | Task | Command (from this directory) |
 | --- | --- |
@@ -92,36 +92,44 @@ The Portal uses the Ability Tech brand from <https://www.ability-tech.com/>
 
 ## Sign-in and sessions
 
-| Page | Path |
-| --- | --- |
-| Sign in | `/<locale>/sign-in` (optional `?returnTo=` from a product) |
-| Forgot password | `/<locale>/forgot-password` |
-| Set password (invitation or reset link) | `/<locale>/set-password#token=…` |
+The only page is `/<locale>/sign-in` (optional `?returnTo=` from a product).
+There is no forgot- or set-password page: an administrator resets a user's
+password from Ability CRM's Users screen, and Ability CRM asks for a new one
+at the next sign-in.
 
-- The forms post to Server Actions, which call the account service from the
-  server. Passwords are never stored, logged, or put in URLs.
-- After sign-in, the Portal stores the service's session token in the
-  `ability_session` cookie (`HttpOnly`, `SameSite=Lax`, `Secure` except over
-  plain HTTP on localhost). Ability CRM and Community Admin read the same
-  cookie, so clients don't sign in twice. Every page checks the session with
-  the service, so sign-out, locks, and ended subscriptions apply at once.
-- `returnTo` is followed only into a configured product destination;
-  anything else opens the Portal home.
-- Sign-out (in the header) ends the session in the service and deletes the
-  cookie, which also signs the client out of both products.
+- **Sign-in from the browser:** the form calls the portal backend
+  (`POST /api/auth/login`) from the browser
+  (`src/services/portalAuth.ts`). The browser itself receives the backend's
+  HttpOnly `access_token` cookie, which Ability CRM's API accepts. The
+  password goes only to the backend; it is never stored, logged, put in a
+  URL, or sent to the Portal's server.
+- **The session cookie:** the Portal's server stores the answer's `session`,
+  `client`, and `platforms` in the `ability_portal_session` cookie
+  (`HttpOnly`, `SameSite=Lax`, `Secure` except over plain HTTP on localhost,
+  6 hours). Ability CRM and Community Admin read the same cookie, so users
+  don't sign in twice.
+  - The answer passes through the browser, so the cookie is display data:
+    who is signed in and which products appear (`session.platforms`).
+  - The products' APIs check `access_token` on every call.
+- **Returning:** `returnTo` is followed only into a configured product
+  destination; anything else opens the Portal home. A product that sends a
+  signed-in user back gets the form again ("Your session ended"), never an
+  automatic redirect.
+- **Choice step:** if the backend asks to choose a client or project, the
+  form says that isn't available yet.
+- **Sign-out** (in the header): the browser asks the backend to clear
+  `access_token`, and the Portal deletes its cookie, which also signs the
+  user out of both products.
 
 | Variable | Local value | Purpose |
 | --- | --- | --- |
-| `ACCOUNT_SERVICE_URL` | `http://localhost:3400` | The account service (server-only) |
-| `ACCOUNT_SERVICE_CLIENT_ID` | `ability-portal` | The Portal's app credentials, issued by the backend team |
-| `ACCOUNT_SERVICE_CLIENT_SECRET` | from the backend team | Keep it in `.env.local`; never commit it |
-| `SESSION_COOKIE_DOMAIN` | empty | Deployed: the parent domain shared with both products, e.g. `apps.ability-tech.com` |
+| `NEXT_PUBLIC_PORTAL_API_URL` | the dev portal backend (`.env.local`) | The portal backend, called by the browser; public, inlined by `next build`. `https:`, or `http:` for loopback and private-network hosts |
+| `SESSION_COOKIE_DOMAIN` | empty | Deployed: the parent domain shared with both products, e.g. `apps.ability-tech.com`; server-only |
 
-The server reads these when it starts; they are never sent to the browser. A
-missing or invalid value is logged by name, and sign-in then reports the
-service as unavailable. Deployments need a reverse proxy that sets
-`X-Real-IP` or `X-Forwarded-For` (used for the service's rate limits) and,
-with several instances, a stable `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
+The portal backend must list the Portal's origin in its CORS allowlist, with
+credentials. A missing or invalid address makes sign-in report the service as
+unavailable. With several instances, deployments need a stable
+`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`.
 
 ## Product destinations
 
@@ -162,27 +170,27 @@ npm run build
 - `src/app/[locale]/page.tsx` - the product-selection page (signed-in only),
   with `actions.ts` (sign-out)
 - `src/app/[locale]/components/ProductCard.tsx` - card presentation (server),
-  including the locked states
+  including the "not included" state
 - `src/app/[locale]/components/ProductCardSurface.tsx`,
   `ProductLaunchLink.tsx` - the card's two small client parts: pointer
   effects and the product link with its opening state
 - `src/app/[locale]/components/ProductPreview.tsx` - decorative product
   miniatures
 - `src/app/[locale]/components/AccountBadge.tsx`, `SignOutForm.tsx`,
-  `SignOutButton.tsx`, `AccessCheckFailed.tsx` - who is signed in, sign-out,
-  and the error shown when the service doesn't answer
+  `SignOutButton.tsx` - who is signed in, and sign-out
 - `src/app/[locale]/hooks/useProductCardPointer.ts`, `useProductLaunch.ts` -
   pointer tilt and spotlight; opening state
 - `src/app/[locale]/types.ts`, `utils.ts` - card view model, builder, and
   screen order
-- `src/app/[locale]/(auth)/sign-in/`, `forgot-password/`, `set-password/` -
-  the sign-in pages, each with its page, Server Action, hook, form, and
-  types; `(auth)/_shared/` holds their shared fields and validation
-- `src/lib/session.ts` - reads, checks, sets, and deletes the session cookie
+- `src/app/[locale]/(auth)/sign-in/` - the sign-in page, its Server Action,
+  hook, form, and types; `(auth)/_shared/` holds the fields and validation
+- `src/services/portalAuth.ts` - the portal backend calls (browser; tested)
+- `src/lib/signInAnswer.ts` - the sign-in answer, the cookie value, and the
+  products it lists (tested)
+- `src/lib/session.ts` - reads, sets, and deletes the session cookie
   (server-only)
-- `src/services/accountService.ts` - the account service calls (server-only)
-- `src/lib/returnTo.ts`, `sessionCookie.ts`, `tokens.ts`, `endUserIp.ts`,
-  `formData.ts`, `accountServiceConfig.ts`, `baseUrl.ts` - helpers (tested)
+- `src/lib/returnTo.ts`, `sessionCookie.ts`, `portalApi.ts`, `formData.ts`,
+  `baseUrl.ts` - helpers (tested)
 - `src/lib/productDestinations.ts` - destination parsing, validation, and links
 - `src/lib/pointer.ts` - pure tilt and click helpers (tested)
 - `src/components/PortalShell.tsx`, `HeroBackdrop.tsx` - the frame of every

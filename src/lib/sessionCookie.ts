@@ -1,11 +1,18 @@
 import { isLoopbackHost } from "./baseUrl";
 
 /**
- * The session cookie shared by the Portal, Ability CRM, and Community Admin
- * (docs/ACCOUNT-SERVICE-API.md, section 7). Only the Portal sets and deletes
- * it; the products only read it.
+ * The sign-in answer shared with Ability CRM and Community Admin
+ * (`src/lib/signInAnswer.ts`). Only the Portal sets and deletes it; the
+ * products only read it.
  */
-export const SESSION_COOKIE_NAME = "ability_session";
+export const SESSION_COOKIE_NAME = "ability_portal_session";
+
+/**
+ * How long the cookie lasts: the lifetime of the portal backend's
+ * `access_token` (`Max-Age=21599`, observed 2026-10-29), which the browser
+ * receives directly and the Portal can't read.
+ */
+export const SESSION_LIFETIME_MS = 6 * 60 * 60 * 1000;
 
 export type CookieDomainSetting =
   | { status: "unset" }

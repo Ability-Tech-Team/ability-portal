@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseEndUserIp } from "./endUserIp";
 import {
   buildSessionCookieOptions,
   parseCookieDomain,
   shouldUseSecureCookie,
 } from "./sessionCookie";
-import { isWellFormedToken } from "./tokens";
 
 describe("parseCookieDomain", () => {
   it.each([undefined, "", "  "])("treats %j as unset", (value) => {
@@ -66,35 +64,5 @@ describe("buildSessionCookieOptions", () => {
         domain: "apps.example.com",
       }).domain,
     ).toBe("apps.example.com");
-  });
-});
-
-describe("isWellFormedToken", () => {
-  it.each([
-    ["a".repeat(43), true],
-    ["Az09_-".repeat(10), true],
-    ["a".repeat(42), false],
-    ["a".repeat(257), false],
-    [`${"a".repeat(43)}=`, false],
-    [`${"a".repeat(43)};`, false],
-    [undefined, false],
-  ])("%j is %j", (value, expected) => {
-    expect(isWellFormedToken(value)).toBe(expected);
-  });
-});
-
-describe("parseEndUserIp", () => {
-  it("prefers X-Real-IP", () => {
-    expect(parseEndUserIp("203.0.113.7", "198.51.100.1")).toBe("203.0.113.7");
-  });
-
-  it("uses the first X-Forwarded-For address", () => {
-    expect(parseEndUserIp(null, "2001:db8::1, 10.0.0.1")).toBe("2001:db8::1");
-  });
-
-  it("leaves out anything that isn't an address", () => {
-    expect(parseEndUserIp("unknown", null)).toBeUndefined();
-    expect(parseEndUserIp(null, "<script>")).toBeUndefined();
-    expect(parseEndUserIp(null, null)).toBeUndefined();
   });
 });

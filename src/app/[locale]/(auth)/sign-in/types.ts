@@ -7,8 +7,8 @@ export type SignInFieldErrors = {
 
 export type SignInError =
   | "invalid_credentials"
-  | "account_disabled"
   | "too_many_attempts"
+  | "choice_required"
   | "unavailable";
 
 /**
@@ -26,4 +26,4 @@ export type SignInFormState =
     };
 
 /** Messages the sign-in page can show from its `notice` query parameter. */
-export type SignInNotice = "signed-out" | "session-ended" | "password-set";
+export type SignInNotice = "signed-out" | "session-ended";

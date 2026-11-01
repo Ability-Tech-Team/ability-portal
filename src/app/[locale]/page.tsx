@@ -11,7 +11,6 @@ import {
   type ProductKey,
 } from "@/src/lib/productDestinations";
 import { getCurrentSession } from "@/src/lib/session";
-import AccessCheckFailed from "./components/AccessCheckFailed";
 import AccountBadge from "./components/AccountBadge";
 import ProductCard from "./components/ProductCard";
 import SignOutForm from "./components/SignOutForm";
@@ -36,13 +35,7 @@ export default async function ProductSelectionPage({ params }: Props) {
   const session = await getCurrentSession();
 
   if (session.status === "signed-out") {
-    return redirect({
-      href: {
-        pathname: "/sign-in",
-        query: session.ended ? { notice: "session-ended" } : {},
-      },
-      locale,
-    });
+    return redirect({ href: "/sign-in", locale });
   }
 
   const t = await getTranslations("Home");
@@ -53,19 +46,6 @@ export default async function ProductSelectionPage({ params }: Props) {
       <LocaleSwitcher />
     </>
   );
-
-  if (session.status === "unavailable") {
-    return (
-      <PortalShell
-        headerActions={headerActions}
-        eyebrow={t("eyebrow")}
-        title={t.rich("title", { highlight })}
-        titleId="product-selection-title"
-      >
-        <AccessCheckFailed />
-      </PortalShell>
-    );
-  }
 
   const direction = hasLocale(routing.locales, locale)
     ? getLocaleDirection(locale)
@@ -84,20 +64,10 @@ export default async function ProductSelectionPage({ params }: Props) {
           title: t("configurationPending"),
           description: t("configurationPendingDescription"),
         };
-      case "not-subscribed":
+      case "not-included":
         return {
-          title: t("notSubscribed"),
-          description: t("notSubscribedDescription", { product }),
-        };
-      case "locked":
-        return {
-          title: t("locked"),
-          description: t("lockedDescription", { product }),
-        };
-      case "unavailable":
-        return {
-          title: t("unavailable"),
-          description: t("unavailableDescription", { product }),
+          title: t("notIncluded"),
+          description: t("notIncludedDescription", { product }),
         };
     }
   }

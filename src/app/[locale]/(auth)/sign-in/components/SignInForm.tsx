@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Link } from "@/src/i18n/navigation";
 import FormAlert from "../../_shared/components/FormAlert";
 import PasswordField from "../../_shared/components/PasswordField";
 import SubmitButton from "../../_shared/components/SubmitButton";
@@ -34,8 +33,8 @@ export default function SignInForm({
     switch (failure.error) {
       case "invalid_credentials":
         return t("invalidCredentials");
-      case "account_disabled":
-        return t("accountDisabled");
+      case "choice_required":
+        return t("choiceRequired");
       case "too_many_attempts":
         return failure.retryAfterMinutes === null
           ? tAuth("tooManyAttemptsLater")
@@ -94,13 +93,8 @@ export default function SignInForm({
             : undefined
         }
         after={
-          <p className="mt-2 text-end">
-            <Link
-              href="/forgot-password"
-              className="text-sm font-semibold text-at-blue-500 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-at-blue-500 dark:text-at-blue-300"
-            >
-              {t("forgotPassword")}
-            </Link>
+          <p className="mt-2 text-sm text-at-ink-muted dark:text-white/70">
+            {t("forgotPasswordHint")}
           </p>
         }
       />

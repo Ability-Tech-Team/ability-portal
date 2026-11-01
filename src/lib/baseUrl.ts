@@ -1,6 +1,6 @@
 /**
- * Validation for configured base URLs (product destinations, the account
- * service): an absolute `https:` URL, or `http:` for loopback hosts during
+ * Validation for configured base URLs (product destinations, the portal
+ * backend): an absolute `https:` URL, or `http:` for loopback hosts during
  * local development, with an optional base path.
  */
 
@@ -16,6 +16,32 @@ export type ParsedBaseUrl =
   | { status: "missing" }
   | { status: "invalid"; problem: BaseUrlProblem };
 
+export type ParseBaseUrlOptions = {
+  /**
+   * Also accept plain `http:` for private-network IPv4 addresses (10/8,
+   * 172.16/12, 192.168/16), where development backends run. Public hosts
+   * still need `https:`.
+   */
+  allowPrivateNetworkHttp?: boolean;
+};
+
+export function isPrivateNetworkHost(hostname: string): boolean {
+  const match = /^(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(hostname);
+
+  if (!match) {
+    return false;
+  }
+
+  const first = Number(match[1]);
+  const second = Number(match[2]);
+
+  return (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  );
+}
+
 export function isLoopbackHost(hostname: string): boolean {
   return (
     hostname === "localhost" ||
@@ -29,7 +55,10 @@ export function isLoopbackHost(hostname: string): boolean {
  * Credentials, query strings, and fragments are rejected so that configured
  * URLs never carry secrets or tokens. The result has no trailing slash.
  */
-export function parseBaseUrl(value: string | undefined): ParsedBaseUrl {
+export function parseBaseUrl(
+  value: string | undefined,
+  { allowPrivateNetworkHttp = false }: ParseBaseUrlOptions = {},
+): ParsedBaseUrl {
   const trimmed = value?.trim();
 
   if (!trimmed) {
@@ -47,7 +76,11 @@ export function parseBaseUrl(value: string | undefined): ParsedBaseUrl {
     return { status: "invalid", problem: "unsupported-protocol" };
   }
 
-  if (url.protocol === "http:" && !isLoopbackHost(url.hostname)) {
+  if (
+    url.protocol === "http:" &&
+    !isLoopbackHost(url.hostname) &&
+    !(allowPrivateNetworkHttp && isPrivateNetworkHost(url.hostname))
+  ) {
     return { status: "invalid", problem: "insecure-http" };
   }
 

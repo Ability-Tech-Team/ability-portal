@@ -5,8 +5,9 @@ import { formLocale } from "@/src/lib/formData";
 import { endSession } from "@/src/lib/session";
 
 /**
- * Signs the client out of the account service and deletes the shared cookie,
- * which also signs them out of Ability CRM and Community Admin.
+ * Deletes the Portal's session cookie, which Ability CRM and Community Admin
+ * read too. The browser has already asked the portal backend to clear its
+ * `access_token` (`SignOutForm`).
  */
 export async function signOut(formData: FormData): Promise<void> {
   const locale = formLocale(formData);

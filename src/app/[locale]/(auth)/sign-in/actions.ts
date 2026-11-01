@@ -1,58 +1,42 @@
 "use server";
 
+import { hasLocale } from "next-intl";
 import { redirect } from "next/navigation";
-import { formLocale, formString } from "@/src/lib/formData";
+import { routing } from "@/src/i18n/routing";
 import { getProductDestinations } from "@/src/lib/productDestinations";
 import { resolveReturnTo } from "@/src/lib/returnTo";
-import { getEndUserIp, startSession } from "@/src/lib/session";
-import { signIn as signInWithPassword } from "@/src/services/accountService";
-import { toRetryMinutes } from "../_shared/validation";
-import { validateSignInFields } from "./schema";
+import { startSession } from "@/src/lib/session";
+import { parseSignInAnswer } from "@/src/lib/signInAnswer";
 import type { SignInFormState } from "./types";
 
 /**
- * Signs the client in with the account service, stores the session cookie,
- * and opens the product they came from (only a configured product address)
- * or the Portal home. A public endpoint: the account service rate-limits
- * attempts per account and per IP address.
+ * Stores the portal backend's sign-in answer, which the browser received
+ * together with the backend's `access_token` cookie, and opens the product
+ * the user came from (only a configured product address) or the Portal home.
+ * The answer comes from the browser, so it is checked here and only ever
+ * displayed; the products' APIs decide access.
  */
-export async function signIn(
-  _previous: SignInFormState,
-  formData: FormData,
-): Promise<SignInFormState> {
-  const locale = formLocale(formData);
-  const email = formString(formData, "email").trim();
-  const password = formString(formData, "password");
-  const fieldErrors = validateSignInFields({ email, password });
+export async function completeSignIn(input: {
+  email: string;
+  answer: unknown;
+  returnTo: string | null;
+  locale: string;
+}): Promise<SignInFormState> {
+  const answer = parseSignInAnswer(input.answer);
 
-  if (fieldErrors.email || fieldErrors.password) {
-    return { status: "invalid", email, fieldErrors };
-  }
-
-  const result = await signInWithPassword({
-    email,
-    password,
-    endUserIp: await getEndUserIp(),
-  });
-
-  if (!result.ok) {
+  if (!answer || !(await startSession(answer))) {
     return {
       status: "failed",
-      email,
-      error: result.reason,
-      retryAfterMinutes:
-        result.reason === "too_many_attempts"
-          ? toRetryMinutes(result.retryAfterSeconds)
-          : null,
+      email: input.email,
+      error: "unavailable",
+      retryAfterMinutes: null,
     };
   }
 
-  await startSession(result.session);
-
-  const returnTarget = resolveReturnTo(
-    formString(formData, "returnTo"),
-    getProductDestinations(),
-  );
+  const locale = hasLocale(routing.locales, input.locale)
+    ? input.locale
+    : routing.defaultLocale;
+  const returnTarget = resolveReturnTo(input.returnTo, getProductDestinations());
 
   redirect(returnTarget?.url ?? `/${locale}`);
 }

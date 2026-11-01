@@ -15,10 +15,9 @@ type ProductCardProps = {
   notice: { title: string; description: string } | null;
 };
 
-/** Locks are about the subscription; the other states are problems. */
+/** "Not included" is about the account; the other states are problems. */
 const lockedStates: ReadonlySet<ProductCardModel["state"]> = new Set([
-  "not-subscribed",
-  "locked",
+  "not-included",
 ]);
 
 const linkedCardClassName = [

@@ -15,15 +15,8 @@
     "opening": "جارٍ فتح {product}…",
     "configurationPending": "بانتظار الإعداد.",
     "configurationPendingDescription": "لم يُضبط عنوان هذا المنتج في هذه البوابة بعد.",
-    "notSubscribed": "غير مشمول في اشتراكك.",
-    "notSubscribedDescription": "تواصل مع Ability Tech لإضافة {product}.",
-    "locked": "مقفل لحسابك.",
-    "lockedDescription": "تواصل مع Ability Tech لفتح {product}.",
-    "unavailable": "غير متاح حاليًا.",
-    "unavailableDescription": "تواصل مع Ability Tech إذا كنت تحتاج إلى {product}.",
-    "accessCheckFailedTitle": "تعذّر التحقق من صلاحياتك",
-    "accessCheckFailedDescription": "لم تستجب خدمة تسجيل الدخول، لذا لا يمكن فتح أي منتج الآن. حاول مرة أخرى بعد قليل.",
-    "tryAgain": "حاول مرة أخرى"
+    "notIncluded": "غير مشمول لحسابك.",
+    "notIncludedDescription": "خطة مؤسستك أو دورك لا يشمل {product}. تواصل مع مسؤول النظام إذا كنت تحتاج إليه."
   },
   "Account": {
     "signedInAs": "تم تسجيل الدخول باسم",
@@ -34,7 +27,6 @@
     "email": "البريد الإلكتروني",
     "password": "كلمة المرور",
     "showPassword": "إظهار كلمة المرور",
-    "backToSignIn": "العودة إلى تسجيل الدخول",
     "tooManyAttempts": "محاولات كثيرة جدًا. حاول مرة أخرى بعد {minutes, plural, one {دقيقة واحدة} two {دقيقتين} few {# دقائق} many {# دقيقة} other {# دقيقة}}.",
     "tooManyAttemptsLater": "محاولات كثيرة جدًا. حاول مرة أخرى لاحقًا.",
     "unavailable": "خدمة تسجيل الدخول غير متاحة حاليًا. حاول مرة أخرى بعد قليل.",
@@ -48,54 +40,18 @@
   "SignIn": {
     "metaTitle": "تسجيل الدخول – Ability Portal",
     "title": "سجّل الدخول إلى <highlight>بوابتك</highlight>",
-    "intro": "استخدم البريد الإلكتروني وكلمة المرور الخاصين بحسابك في Ability Tech.",
+    "intro": "استخدم البريد الإلكتروني وكلمة المرور اللذين منحتك إياهما مؤسستك.",
     "formTitle": "تسجيل الدخول",
     "continueTo": "سجّل الدخول للمتابعة إلى {product}.",
-    "forgotPassword": "نسيت كلمة المرور؟",
+    "forgotPasswordHint": "نسيت كلمة المرور؟ اطلب من مسؤول النظام إعادة تعيينها من Ability CRM.",
     "submit": "تسجيل الدخول",
     "submitting": "جارٍ تسجيل الدخول…",
     "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
-    "accountDisabled": "هذا الحساب معطَّل. تواصل مع Ability Tech.",
-    "noAccount": "تُنشئ Ability Tech حسابات عملائها. إذا لم يكن لديك حساب بعد، فتواصل مع Ability Tech.",
+    "choiceRequired": "بريدك الإلكتروني مرتبط بأكثر من مؤسسة أو مشروع، واختيار أحدها هنا غير متاح بعد. تواصل مع Ability Tech.",
+    "noAccount": "يُنشئ مسؤول النظام في مؤسستك حسابك. إذا لم يكن لديك حساب بعد، فاطلبه منه.",
     "notices": {
       "signed-out": "تم تسجيل خروجك.",
-      "session-ended": "انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة.",
-      "password-set": "تم تعيين كلمة المرور. سجّل الدخول بكلمة المرور الجديدة."
-    }
-  },
-  "ForgotPassword": {
-    "metaTitle": "نسيت كلمة المرور – Ability Portal",
-    "title": "إعادة تعيين <highlight>كلمة المرور</highlight>",
-    "intro": "سنرسل إليك عبر البريد الإلكتروني رابطًا لتعيين كلمة مرور جديدة.",
-    "formTitle": "نسيت كلمة المرور؟",
-    "emailHint": "البريد الإلكتروني الذي تسجّل الدخول به.",
-    "submit": "أرسل لي رابطًا",
-    "submitting": "جارٍ الإرسال…",
-    "sentTitle": "تحقّق من بريدك الإلكتروني",
-    "sentDescription": "إذا كان هناك حساب يستخدم <email>{address}</email>، فقد أرسلنا إليه رابطًا لتعيين كلمة مرور جديدة. يعمل الرابط مرة واحدة وتنتهي صلاحيته بعد وقت قصير."
-  },
-  "SetPassword": {
-    "metaTitle": "تعيين كلمة المرور – Ability Portal",
-    "title": "عيّن <highlight>كلمة المرور</highlight>",
-    "intro": "اختر كلمة المرور التي ستستخدمها لتسجيل الدخول إلى Ability Portal.",
-    "formTitle": "تعيين كلمة مرور جديدة",
-    "checkingLink": "جارٍ التحقق من الرابط…",
-    "linkMissing": "افتح هذه الصفحة من الرابط الموجود في بريدك الإلكتروني. إذا لم يعد الرابط يعمل، فاطلب رابطًا جديدًا.",
-    "linkInvalid": "انتهت صلاحية هذا الرابط أو سبق استخدامه. اطلب رابطًا جديدًا.",
-    "requestNewLink": "اطلب رابطًا جديدًا",
-    "newPassword": "كلمة المرور الجديدة",
-    "confirmPassword": "تأكيد كلمة المرور الجديدة",
-    "hint": "{minLength} حرفًا على الأقل. تصلح جملة تتذكرها جيدًا.",
-    "submit": "تعيين كلمة المرور",
-    "submitting": "جارٍ الحفظ…",
-    "errors": {
-      "password_required": "أدخل كلمة مرور جديدة.",
-      "password_too_short": "استخدم {minLength} حرفًا على الأقل.",
-      "password_too_long": "استخدم {maxLength} حرفًا أو أقل.",
-      "password_too_common": "كلمة المرور هذه شائعة جدًا أو ظهرت في تسريب بيانات. اختر كلمة مرور أخرى.",
-      "password_rejected": "لا يمكن استخدام كلمة المرور هذه. اختر كلمة مرور أخرى.",
-      "confirmation_required": "أدخل كلمة المرور الجديدة مرة أخرى.",
-      "confirmation_mismatch": "كلمتا المرور غير متطابقتين."
+      "session-ended": "انتهت جلستك. سجّل الدخول مرة أخرى للمتابعة."
     }
   },
   "Products": {
