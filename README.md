@@ -165,6 +165,50 @@ NEXT_PUBLIC_COMMUNITY_ADMIN_APP_URL=https://community-admin.example.com \
 npm run build
 ```
 
+## Container
+
+To run the app as a standalone container on a server with Docker and curl,
+from this directory:
+
+```bash
+cp .env.example .env.production   # this server's values, without quotes
+npm run docker:prod:update
+```
+
+| Command | What it does |
+| --- | --- |
+| `npm run docker:prod:update` | Builds a new image, checks it in a private preview container, then switches port 3300 to it. The running container serves until then and comes back if the new one doesn't answer. Also does the first deploy |
+| `npm run docker:prod:build` | Builds the image only |
+| `npm run docker:prod` | (Re)starts the container from the last image, e.g. after changing `.env.production` |
+| `npm run docker:prod:logs` | Follows the container's logs |
+| `npm run docker:prod:stop` | Stops and removes the container; the images stay |
+
+- **Image:** the `Dockerfile` builds the standalone server on Node.js 22
+  Alpine (`NEXT_OUTPUT=standalone`; `npm run build` keeps the regular output
+  for `next start`). It runs as the unprivileged `node` user on port 3000
+  inside the container.
+- **Settings:** the image holds no env file (`.dockerignore`). The
+  `NEXT_PUBLIC_*` lines of `.env.production` are inlined into the build, so
+  the script passes them as build arguments: after changing one, run `npm run
+  docker:prod:update` (`docker:prod` warns that the image still has the old
+  values). The container reads the rest, `SESSION_COOKIE_DOMAIN`, when it
+  starts (`docker run --env-file`). Docker reads the file literally, so write
+  values without quotes; the script refuses quoted ones.
+- **Readiness:** `GET /aws/health-check`, for the script's switch and the
+  image's `HEALTHCHECK`.
+- **Options:** `PORT` (host port, default 3300), `ENV_FILE` (default
+  `.env.production`), `IMAGE` and `NAME` (default `ability-portal`),
+  `STARTUP_TIMEOUT` (60 seconds), and `KEEP_RELEASES` (3), e.g.
+  `PORT=8080 npm run docker:prod:update`.
+- **Releases:** each image is tagged `ability-portal:<UTC time>-<commit>` and
+  `ability-portal` (the last one built or deployed); the 3 newest release tags are
+  kept. To go back by hand:
+  `docker tag ability-portal:<older tag> ability-portal && npm run docker:prod`.
+- **Network:** `docker build` downloads the npm packages and the fonts from Google Fonts.
+- **Behind a load balancer or reverse proxy** that terminates HTTPS, forward
+  `Host` (or `X-Forwarded-Host`) and `X-Forwarded-Proto`. The app builds the
+  addresses it sends users back to from them.
+
 ## Structure
 
 - `src/app/[locale]/page.tsx` - the product-selection page (signed-in only),
@@ -208,10 +252,13 @@ npm run build
   session)
 - `messages/en.json`, `messages/ar.json` - this app's translation catalogs
 - `test/server-only.ts` - stands in for `server-only` in unit tests
+- `Dockerfile`, `.dockerignore`, `scripts/docker.sh` - the standalone
+  container and the `docker:prod:*` scripts (see [Container](#container))
 
 Imports use the root-based alias `@/src/...` (`"@/*": ["./*"]`).
 
 ## Repository
 
-This directory is its own local Git repository, with no remote yet. It shares
-no history or remote with Amer CRM or the other apps.
+This directory is its own Git repository, with its own `origin` remote on
+GitHub (`Ability-Tech-Team`). It shares no history or remote with Amer CRM or
+the other apps.

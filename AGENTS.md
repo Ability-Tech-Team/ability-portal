@@ -134,6 +134,15 @@ the workspace instead of assuming it exists.
   is cursive). Isolate Latin names and email addresses with `<bdi>` in
   Arabic text. Fonts are fetched by `next build`/`next dev` from Google Fonts
   and served by the Portal.
+- **Container** (README.md, Container): `Dockerfile` (the standalone server,
+  built with `NEXT_OUTPUT=standalone`; `next.config.ts` keeps the regular
+  output otherwise), `.dockerignore` (no env file enters the image), and
+  `scripts/docker.sh`, run by `npm run docker:prod:update`, `docker:prod`,
+  `docker:prod:build`, `docker:prod:logs`, and `docker:prod:stop`. The
+  container reads `.env.production` when it starts and is ready when
+  `/aws/health-check` answers. Its `NEXT_PUBLIC_*` lines are build arguments,
+  inlined at build time, so changing one needs `docker:prod:update`. Reading the scripts doesn't authorize
+  running them; Docker isn't installed on the development Mac.
 - **Tests:** `npm test` runs Vitest (`vitest.config.mts`) on
   `src/**/*.test.ts`; `test/server-only.ts` stands in for `server-only`.
   Keep tests on consequential logic: destination and `returnTo` validation,
