@@ -25,14 +25,14 @@ From `CRM/`:
 ```bash
 npm --prefix Ability-Portal ci
 cp Ability-Portal/.env.example Ability-Portal/.env.local
-npm run dev:portal   # or: npm --prefix Ability-Portal run dev -- --port 3300
+npm run dev:portal   # or: npm --prefix Ability-Portal run dev
 ```
 
-Open <http://localhost:3300>; `/` redirects to `/en` (or the browser's
+Open <http://localhost:9992>; `/` redirects to `/en` (or the browser's
 preferred supported locale), and a signed-out visitor lands on `/en/sign-in`.
 `/ar` renders right-to-left, and its cards link to the Arabic pages of each
 product. To follow the links locally, run `npm run dev` from `CRM/` instead: it
-starts the Portal, Ability CRM (3100), and Community Admin (3200) together (see
+starts the Portal, Ability CRM (9994), and Community Admin (9993) together (see
 `../README.md`). Signing in needs the portal backend at
 `NEXT_PUBLIC_PORTAL_API_URL`, with the Portal's origin in its CORS allowlist.
 
@@ -42,7 +42,7 @@ starts the Portal, Ability CRM (3100), and Community Admin (3200) together (see
 | Type check (`tsc --noEmit`) | `npm run typecheck` |
 | Unit tests (Vitest) | `npm test` |
 | Production build | `npm run build` |
-| Production server | `npm run start -- --port 3300` |
+| Production server | `npm run start` |
 
 `npm run build` (and `npm run dev`) downloads the Ability Tech web fonts
 (Montserrat, Inter, and Cairo) from Google Fonts through `next/font`, so the
@@ -135,8 +135,8 @@ unavailable. With several instances, deployments need a stable
 
 | Variable | Card | Local value |
 | --- | --- | --- |
-| `NEXT_PUBLIC_CRM_APP_URL` | Ability CRM | `http://localhost:3100` |
-| `NEXT_PUBLIC_COMMUNITY_ADMIN_APP_URL` | Community Admin | `http://localhost:3200` |
+| `NEXT_PUBLIC_CRM_APP_URL` | Ability CRM | `http://localhost:9994` |
+| `NEXT_PUBLIC_COMMUNITY_ADMIN_APP_URL` | Community Admin | `http://localhost:9993` |
 
 - These are public navigation settings, not secrets and not access decisions.
   `.env.example` is tracked; `.env.local` and other `.env*` files are ignored.
@@ -177,7 +177,7 @@ npm run docker:prod:update
 
 | Command | What it does |
 | --- | --- |
-| `npm run docker:prod:update` | Builds a new image, checks it in a private preview container, then switches port 3300 to it. The running container serves until then and comes back if the new one doesn't answer. Also does the first deploy |
+| `npm run docker:prod:update` | Builds a new image, checks it in a private preview container, then switches port 9992 to it. The running container serves until then and comes back if the new one doesn't answer. Also does the first deploy |
 | `npm run docker:prod:build` | Builds the image only |
 | `npm run docker:prod` | (Re)starts the container from the last image, e.g. after changing `.env.production` |
 | `npm run docker:prod:logs` | Follows the container's logs |
@@ -196,7 +196,7 @@ npm run docker:prod:update
   values without quotes; the script refuses quoted ones.
 - **Readiness:** `GET /aws/health-check`, for the script's switch and the
   image's `HEALTHCHECK`.
-- **Options:** `PORT` (host port, default 3300), `ENV_FILE` (default
+- **Options:** `PORT` (host port, default 9992), `ENV_FILE` (default
   `.env.production`), `IMAGE` and `NAME` (default `ability-portal`),
   `STARTUP_TIMEOUT` (60 seconds), and `KEEP_RELEASES` (3), e.g.
   `PORT=8080 npm run docker:prod:update`.

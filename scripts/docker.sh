@@ -22,7 +22,7 @@ cd "$(dirname "$0")/.."
 
 IMAGE=${IMAGE:-ability-portal}
 NAME=${NAME:-ability-portal}
-PORT=${PORT:-3300}
+PORT=${PORT:-9992}
 ENV_FILE=${ENV_FILE:-.env.production}
 HEALTH_PATH=/aws/health-check
 STARTUP_TIMEOUT=${STARTUP_TIMEOUT:-60}

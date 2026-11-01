@@ -10,7 +10,7 @@ the workspace instead of assuming it exists.
 
 - **Target:** a chat started in this directory targets Ability Portal, the
   single client-facing entry point and the only sign-in page for the
-  commercial products (npm package `ability-portal`, local port 3300). Do not
+  commercial products (npm package `ability-portal`, local port 9992). Do not
   change sibling apps unless the request names them.
 - **Responsibility (decided 2026-11-01; rules in `../AGENTS.md`):** users
   sign in here with the email and password of their client's backend,
@@ -163,12 +163,12 @@ Commands, from this directory (details in `README.md`; from `CRM/`,
 ```bash
 npm ci
 cp .env.example .env.local   # product URLs and the portal backend
-npm run dev -- --port 3300
+npm run dev
 npm run lint
 npm run typecheck
 npm test
 npm run build
-npm run start -- --port 3300
+npm run start
 ```
 
 State and decisions: `../docs/MIGRATION.md`.
@@ -179,7 +179,7 @@ or outdated. Keep it unchanged.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
