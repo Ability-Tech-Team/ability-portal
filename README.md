@@ -203,6 +203,9 @@ npm run build
   (the "A" mark)
 - `public/brand/` - the official logo files from ability-tech.com
 - `src/proxy.ts`, `src/i18n/` - locale routing, navigation, request config
+- `src/app/aws/health-check/route.ts` - `GET /aws/health-check` answers 200
+  with `{"status":200}` for the load balancer, as in Amer CRM (no locale or
+  session)
 - `messages/en.json`, `messages/ar.json` - this app's translation catalogs
 - `test/server-only.ts` - stands in for `server-only` in unit tests
 
