@@ -1,6 +1,6 @@
 /**
  * Field rules for the sign-in form. The limits mirror the portal backend's own
- * validation of `POST /api/auth/login` (a valid email address, a password of
+ * validation of `POST /portal/auth/login` (a valid email address, a password of
  * at most 128 characters); the backend stays the authority and rejects
  * anything these checks let through.
  */

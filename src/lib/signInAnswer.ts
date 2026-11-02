@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ProductKey } from "./productDestinations";
 
 /**
- * The portal backend's sign-in answer (`POST /api/auth/login`, `step: "done"`),
+ * The portal backend's sign-in answer (`POST /portal/auth/login`, `step: "done"`),
  * as the Portal keeps it in the `ability_portal_session` cookie for Ability
  * CRM and Community Admin, which never receive the answer themselves. The
  * products parse the cookie with the same rules (Ability CRM:

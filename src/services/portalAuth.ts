@@ -4,8 +4,10 @@
  * `access_token` cookie, which Ability CRM's and Community Admin's APIs accept.
  * The password goes only to the backend, never to the Portal's server.
  *
+ * `baseUrl` includes the backend's `/portal` prefix (`.../portal/auth/login`).
  * Statuses follow the backend's OpenAPI description (`/docs-json`). Anything
- * else, including a network error or a browser CORS block, is "unavailable".
+ * else, including a network error, a browser CORS block, or the 404 the
+ * backend answers when it can't reach the client's backend, is "unavailable".
  */
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -31,7 +33,7 @@ export async function signIn(
 ): Promise<PortalSignInResult> {
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/api/auth/login`, {
+    response = await fetch(`${baseUrl}/auth/login`, {
       method: "POST",
       credentials: "include",
       cache: "no-store",
@@ -82,7 +84,7 @@ export async function signIn(
  */
 export async function signOut(baseUrl: string): Promise<boolean> {
   try {
-    const response = await fetch(`${baseUrl}/api/auth/logout`, {
+    const response = await fetch(`${baseUrl}/auth/logout`, {
       method: "POST",
       credentials: "include",
       cache: "no-store",

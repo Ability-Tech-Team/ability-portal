@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { signIn, signOut } from "./portalAuth";
 
-const BASE = "http://172.20.1.141:9995";
+const BASE = "https://api.example.com/portal";
 const CREDENTIALS = { email: "owner@client.example", password: "pa ss" };
 
 function answer(status: number, body: unknown, headers: Record<string, string> = {}) {
@@ -25,7 +25,7 @@ describe("signIn", () => {
     await signIn(BASE, CREDENTIALS);
 
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe(`${BASE}/api/auth/login`);
+    expect(url).toBe(`${BASE}/auth/login`);
     expect(url).not.toContain("pa");
     expect(init).toMatchObject({ method: "POST", credentials: "include", redirect: "error" });
     expect(JSON.parse(String(init.body))).toEqual(CREDENTIALS);
@@ -71,6 +71,8 @@ describe("signIn", () => {
 
   it.each([
     ["the client's backend not answering (503)", answer(503, {})],
+    // What the backend answers when it can't reach the client's backend.
+    ["the client's backend not found (404)", answer(404, { statusCode: 404, message: "Resource not found" })],
     ["a server error", answer(500, {})],
     ["a 200 that isn't an answer", answer(200, ["done"])],
     ["a body that isn't JSON", vi.fn(async () => new Response("<html>", { status: 200 }))],
@@ -90,7 +92,7 @@ describe("signOut", () => {
 
     expect(await signOut(BASE)).toBe(true);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe(`${BASE}/api/auth/logout`);
+    expect(url).toBe(`${BASE}/auth/logout`);
     expect(init).toMatchObject({ method: "POST", credentials: "include" });
   });
 

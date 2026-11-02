@@ -98,7 +98,8 @@ password from Ability CRM's Users screen, and Ability CRM asks for a new one
 at the next sign-in.
 
 - **Sign-in from the browser:** the form calls the portal backend
-  (`POST /api/auth/login`) from the browser
+  (`POST <NEXT_PUBLIC_PORTAL_API_URL>/auth/login`, e.g.
+  `https://api-prd.ability-tech.com/portal/auth/login`) from the browser
   (`src/services/portalAuth.ts`). The browser itself receives the backend's
   HttpOnly `access_token` cookie, which Ability CRM's API accepts. The
   password goes only to the backend; it is never stored, logged, put in a

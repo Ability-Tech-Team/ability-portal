@@ -27,9 +27,11 @@ the workspace instead of assuming it exists.
   `../Amer-CRM`, `../Ability-CRM`, or `../Ability-Community-Admin`.
 - **Status (2026-11-01):** sign-in through the portal backend, sign-out, the
   `ability_portal_session` cookie, and the card states are implemented and
-  were checked end to end against contract stand-ins. The dev portal backend
-  doesn't answer CORS for the Portal's origin yet, so a real sign-in is
-  blocked by the browser and reports the service as unavailable. Do not add
+  were checked end to end against contract stand-ins (again on 2026-11-02,
+  with production's `/portal` routes). Neither the dev nor the production
+  portal backend answers CORS for the Portal's origin yet, so a real sign-in
+  is blocked by the browser and reports the service as unavailable; behind
+  that, both answer 404 for real accounts (`../docs/MIGRATION.md`, problem 22). Do not add
   fake users, demo credentials, a sign-in that accepts any password or checks
   it in the browser, a stub or bypass, fabricated products, localStorage
   switches, or true-by-default access helpers. A missing or unknown product
@@ -40,7 +42,8 @@ the workspace instead of assuming it exists.
     calls `src/services/portalAuth.ts#signIn`, then the Server Action
     `actions.ts#completeSignIn` with the answer (never the password).
   - `src/services/portalAuth.ts`: the only calls to the portal backend
-    (`POST /api/auth/login`, `/api/auth/logout`), from the browser with
+    (`POST <NEXT_PUBLIC_PORTAL_API_URL>/auth/login` and `/auth/logout`; the
+    value includes the backend's `/portal` prefix), from the browser with
     `credentials: 'include'`, so the browser receives the backend's HttpOnly
     `access_token`. 401 and 422 are wrong credentials, 429 is throttling (with
     `Retry-After` when exposed), a `step` other than `done` is a client or
