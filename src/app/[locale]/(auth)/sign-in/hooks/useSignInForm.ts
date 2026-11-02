@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
 import { formLocale, formString } from "@/src/lib/formData";
 import { getPortalApiUrl } from "@/src/lib/portalApi";
@@ -14,7 +15,7 @@ const initialState: SignInFormState = { status: "idle", email: "" };
  * the backend's session cookie, then has the Portal's server store the answer
  * for the products and open the next page.
  */
-async function submitSignIn(
+export async function submitSignIn(
   _previous: SignInFormState,
   formData: FormData,
 ): Promise<SignInFormState> {
@@ -43,12 +44,25 @@ async function submitSignIn(
     };
   }
 
-  return completeSignIn({
-    email,
-    answer: result.answer,
-    returnTo: formString(formData, "returnTo") || null,
-    locale: formLocale(formData),
-  });
+  try {
+    return await completeSignIn({
+      email,
+      answer: result.answer,
+      returnTo: formString(formData, "returnTo") || null,
+      locale: formLocale(formData),
+    });
+  } catch (error) {
+    // Opening the next page rejects with Next.js's redirect; let it through.
+    unstable_rethrow(error);
+    // The Portal's server didn't store the session, e.g. a proxy in front of
+    // it refused the request: say so on the form, not on an error page.
+    return {
+      status: "failed",
+      email,
+      error: "unavailable",
+      retryAfterMinutes: null,
+    };
+  }
 }
 
 /**
